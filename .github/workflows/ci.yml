@@ -34,7 +34,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
           npm run test:e2e
 
   image:
