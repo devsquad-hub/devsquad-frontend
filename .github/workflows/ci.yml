@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.18.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Browser smoke and accessibility tests
+        if: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && secrets.CLERK_SECRET_KEY != '' }}
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+  image:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        shell: bash
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/devsquad-web" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          build-args: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: image
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Install verified Coolify CLI
+        shell: bash
+        run: |
+          release=https://github.com/coollabsio/coolify-cli/releases/download/v1.6.2
+          archive=coolify-cli_1.6.2_linux_amd64.tar.gz
+          curl -fsSLO "$release/$archive"
+          echo '269b131ebeebc41bc8889d3f76fdf2704d0261f3d77414232d700b8255f67ea5  coolify-cli_1.6.2_linux_amd64.tar.gz' | sha256sum -c -
+          tar -xzf "$archive" coolify
+          sudo install -m 0755 coolify /usr/local/bin/coolify
+      - name: Deploy immutable image
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_RESOURCE_UUID: ${{ secrets.COOLIFY_FRONTEND_RESOURCE_UUID }}
+        run: |
+          coolify context add ci "$COOLIFY_URL" "$COOLIFY_TOKEN" --force --default
+          coolify deploy uuid "$COOLIFY_RESOURCE_UUID" --docker-tag "${{ github.sha }}" --force
