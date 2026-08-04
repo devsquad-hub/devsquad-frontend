@@ -88,4 +88,5 @@ jobs:
           COOLIFY_RESOURCE_UUID: ${{ secrets.COOLIFY_FRONTEND_RESOURCE_UUID }}
         run: |
           coolify context add ci "$COOLIFY_URL" "$COOLIFY_TOKEN" --force --default
-          coolify deploy uuid "$COOLIFY_RESOURCE_UUID" --docker-tag "${{ github.sha }}" --force
+          coolify app update "$COOLIFY_RESOURCE_UUID" --docker-tag "${{ github.sha }}"
+          coolify app start "$COOLIFY_RESOURCE_UUID" --force
