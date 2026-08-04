@@ -1,5 +1,6 @@
 import { MailIcon } from "@primer/octicons-react";
 import { Label } from "@primer/react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { MutationButton } from "@/components/resource-actions";
 import { backendFetch } from "@/lib/api";
@@ -17,14 +18,16 @@ export default async function InvitationsPage() {
   const response = await backendFetch<PageResponse<Invitation>>(
     "/api/v1/me/invitations",
     { authenticated: true },
-  ).catch(() => ({ items: [], page: 0, size: 0, totalItems: 0 }));
+  ).catch(() => undefined);
   return (
     <div className="content-width">
       <PageHeading
         title="Convites"
         description="Convites para integrar equipes de projeto."
       />
-      {response.items.length === 0 ? (
+      {!response ? (
+        <BackendUnavailable />
+      ) : response.items.length === 0 ? (
         <div className="empty-state list-panel">
           <MailIcon size={24} />
           <h2>Nenhum convite pendente</h2>

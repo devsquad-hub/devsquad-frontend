@@ -89,4 +89,17 @@ jobs:
         run: |
           coolify context add ci "$COOLIFY_URL" "$COOLIFY_TOKEN" --force --default
           coolify app update "$COOLIFY_RESOURCE_UUID" --docker-tag "${{ github.sha }}"
-          coolify app start "$COOLIFY_RESOURCE_UUID" --force
+          deployment=$(coolify app start "$COOLIFY_RESOURCE_UUID" --force)
+          echo "$deployment"
+          deployment_uuid=$(echo "$deployment" | awk '/Deployment UUID:/ {print $3}')
+          test -n "$deployment_uuid"
+          for attempt in {1..60}; do
+            status=$(coolify deploy get "$deployment_uuid" --format json | jq -r '.status')
+            case "$status" in
+              finished) break ;;
+              failed|cancelled) exit 1 ;;
+            esac
+            sleep 5
+          done
+          test "$status" = finished
+          curl --fail --show-error --silent https://devsquad.guilhermemarschall.com.br/ >/dev/null

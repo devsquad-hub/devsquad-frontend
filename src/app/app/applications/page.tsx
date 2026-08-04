@@ -1,5 +1,6 @@
 import { InboxIcon } from "@primer/octicons-react";
 import { Label } from "@primer/react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { backendFetch } from "@/lib/api";
 import type { PageResponse } from "@/lib/api-types";
@@ -16,14 +17,16 @@ export default async function ApplicationsPage() {
   const response = await backendFetch<PageResponse<Application>>(
     "/api/v1/me/applications",
     { authenticated: true },
-  ).catch(() => ({ items: [], page: 0, size: 0, totalItems: 0 }));
+  ).catch(() => undefined);
   return (
     <div className="content-width">
       <PageHeading
         title="Candidaturas"
         description="Acompanhe cada processo seletivo em que você participa."
       />
-      {response.items.length === 0 ? (
+      {!response ? (
+        <BackendUnavailable />
+      ) : response.items.length === 0 ? (
         <div className="empty-state list-panel">
           <InboxIcon size={24} />
           <h2>Nenhuma candidatura</h2>

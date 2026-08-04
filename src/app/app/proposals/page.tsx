@@ -1,25 +1,13 @@
 import { Label, LinkButton } from "@primer/react";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { DecisionForm, MutationButton } from "@/components/resource-actions";
 import { backendFetch } from "@/lib/api";
 import type { Account, HubMembership, Proposal } from "@/lib/api-types";
 
 export default async function ProposalsPage() {
-  const hubs = await backendFetch<HubMembership[]>("/api/v1/hubs", {
-    authenticated: true,
-  }).catch(() => []);
-  const groups = await Promise.all(
-    hubs.map((hub) =>
-      backendFetch<Proposal[]>(`/api/v1/hubs/${hub.hubId}/proposals`, {
-        authenticated: true,
-      }).catch(() => []),
-    ),
-  );
-  const account = await backendFetch<Account>("/api/v1/me", {
-    authenticated: true,
-  }).catch(() => undefined);
-  const proposals = groups.flat();
+  const result = await loadProposals();
   return (
     <div className="content-width">
       <PageHeading
@@ -31,7 +19,9 @@ export default async function ProposalsPage() {
           </LinkButton>
         }
       />
-      {proposals.length === 0 ? (
+      {!result ? (
+        <BackendUnavailable />
+      ) : result.proposals.length === 0 ? (
         <div className="empty-state list-panel">
           <CommentDiscussionIcon size={24} />
           <h2>Nenhuma proposta</h2>
@@ -39,7 +29,7 @@ export default async function ProposalsPage() {
         </div>
       ) : (
         <div className="list-panel">
-          {proposals.map((proposal) => (
+          {result.proposals.map((proposal) => (
             <article className="list-row" key={proposal.id}>
               <div className="section-header">
                 <div>
@@ -64,7 +54,7 @@ export default async function ProposalsPage() {
                 ))}
               </div>
               {proposal.status === "DRAFT" &&
-                proposal.authorId === account?.id && (
+                proposal.authorId === result.account.id && (
                   <MutationButton
                     endpoint={`/api/backend/v1/proposals/${proposal.id}/submit`}
                     variant="primary"
@@ -73,7 +63,7 @@ export default async function ProposalsPage() {
                   </MutationButton>
                 )}
               {proposal.status === "PENDING" &&
-                hubs.some(
+                result.hubs.some(
                   (hub) =>
                     hub.hubId === proposal.hubId &&
                     (hub.role === "MASTER" || hub.role === "ADMIN"),
@@ -99,4 +89,25 @@ export default async function ProposalsPage() {
       )}
     </div>
   );
+}
+
+async function loadProposals() {
+  try {
+    const hubs = await backendFetch<HubMembership[]>("/api/v1/hubs", {
+      authenticated: true,
+    });
+    const [groups, account] = await Promise.all([
+      Promise.all(
+        hubs.map((hub) =>
+          backendFetch<Proposal[]>(`/api/v1/hubs/${hub.hubId}/proposals`, {
+            authenticated: true,
+          }),
+        ),
+      ),
+      backendFetch<Account>("/api/v1/me", { authenticated: true }),
+    ]);
+    return { hubs, account, proposals: groups.flat() };
+  } catch {
+    return undefined;
+  }
 }
