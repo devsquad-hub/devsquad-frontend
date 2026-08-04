@@ -6,14 +6,14 @@ test.beforeEach(() => {
 });
 
 test("renders the public catalog without horizontal overflow", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Ideias ganham equipe. Equipes entregam projetos." })).toBeVisible();
   const sizes = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.width);
 });
 
 test("has no automatically detectable accessibility violations", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "networkidle" });
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
