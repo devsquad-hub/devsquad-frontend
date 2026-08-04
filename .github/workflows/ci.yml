@@ -30,7 +30,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - name: Browser smoke and accessibility tests
-        if: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && secrets.CLERK_SECRET_KEY != '' }}
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
