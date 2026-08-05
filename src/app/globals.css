@@ -494,9 +494,19 @@ select {
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--bgColor-accent-muted, #ddf4ff);
-  color: var(--fgColor-accent, #0969da);
+  color: #0550ae;
   font-size: 12px;
   font-weight: 600;
+}
+
+[data-component="Label"][data-variant="success"] {
+  color: #1a7f37 !important;
+}
+
+.project-aside a[data-no-visuals="true"][data-variant="primary"] {
+  border-color: #1f883d !important;
+  background: #1f883d !important;
+  color: #fff !important;
 }
 
 .progress-track {
