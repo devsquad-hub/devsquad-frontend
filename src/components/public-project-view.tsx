@@ -140,8 +140,8 @@ export function PublicProjectView({
               <div className="section-heading-line">
                 <h2 className="section-title">Posições abertas</h2>
                 <span className="muted">
-                  {positions.length} posição
-                  {positions.length === 1 ? "" : "ões"}
+                  {positions.length}{" "}
+                  {positions.length === 1 ? "posição" : "posições"}
                 </span>
               </div>
             </div>
