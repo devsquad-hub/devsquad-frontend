@@ -590,6 +590,306 @@ select {
   margin-inline: auto;
 }
 
+.proposals-page .content-heading {
+  align-items: flex-end;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.proposal-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-subtle);
+}
+
+.proposal-overview > div {
+  display: grid;
+  gap: 3px;
+  padding: 16px 18px;
+  border-right: 1px solid var(--ds-muted-border);
+}
+
+.proposal-overview > div:last-child {
+  border-right: 0;
+}
+
+.proposal-overview-value {
+  font-size: 24px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+.proposal-overview-label {
+  color: var(--ds-muted);
+  font-size: 12px;
+}
+
+.proposal-groups {
+  display: grid;
+  gap: 44px;
+  margin-top: 44px;
+}
+
+.proposal-group {
+  min-width: 0;
+}
+
+.proposal-group-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.proposal-group-title-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.proposal-group-title-row h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+}
+
+.proposal-group-heading p {
+  margin: 6px 0 0;
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+
+.proposal-group-marker {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ds-accent);
+}
+
+.proposal-group--pending .proposal-group-marker {
+  background: #bf8700;
+}
+
+.proposal-group--approved .proposal-group-marker {
+  background: var(--ds-success);
+}
+
+.proposal-group--rejected .proposal-group-marker {
+  background: var(--ds-danger);
+}
+
+.proposal-group--withdrawn .proposal-group-marker {
+  background: var(--ds-muted);
+}
+
+.proposal-group-count {
+  color: var(--ds-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.proposal-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.proposal-card {
+  display: grid;
+  gap: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  background: var(--ds-canvas);
+  box-shadow: var(--ds-shadow-sm);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.proposal-card:hover {
+  border-color: var(--ds-muted-border);
+  box-shadow: var(--ds-shadow-card);
+  transform: translateY(-1px);
+}
+
+.proposal-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.proposal-card-heading h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.proposal-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--ds-muted);
+  font-size: 12px;
+}
+
+.proposal-card-summary {
+  max-width: 72ch;
+  margin: 16px 0 0;
+  line-height: 1.55;
+}
+
+.proposal-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 4px;
+  background: var(--ds-subtle);
+  color: var(--ds-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.proposal-status--pending {
+  border-color: #d4a72c66;
+  background: #fff8c5;
+  color: #7d4e00;
+}
+
+.proposal-status--approved {
+  border-color: #1f883d66;
+  background: #dafbe1;
+  color: #1a7f37;
+}
+
+.proposal-status--rejected {
+  border-color: #cf222e55;
+  background: #ffebe9;
+  color: #a40e26;
+}
+
+.proposal-status--withdrawn {
+  color: var(--ds-muted);
+}
+
+.proposal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proposal-detail {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-muted-border);
+}
+
+.proposal-detail span,
+.proposal-reason > span {
+  color: var(--ds-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.proposal-detail p,
+.proposal-reason p {
+  max-width: 72ch;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.proposal-reason {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid var(--ds-danger);
+}
+
+.proposal-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ds-muted-border);
+}
+
+.proposal-review {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.proposal-review summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--ds-accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.proposal-review summary:hover,
+.proposal-review summary:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.proposal-review-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--ds-muted-border);
+  border-radius: 6px;
+  background: var(--ds-subtle);
+}
+
+.proposal-review-body p {
+  margin: 0;
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+
+.proposal-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.proposal-review-actions .project-meta {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.proposal-review-actions .project-meta input {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1559,6 +1859,45 @@ select {
   .toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .proposal-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .proposals-page .content-heading {
+    align-items: flex-start;
+  }
+
+  .proposal-overview > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .proposal-overview > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ds-muted-border);
+  }
+
+  .proposal-group-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .proposal-card {
+    padding: 18px;
+  }
+
+  .proposal-card-heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .proposal-review-actions {
+    display: grid;
+  }
+
+  .proposal-review-actions .project-meta {
+    display: grid;
   }
 }
 
