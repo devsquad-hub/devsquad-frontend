@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest } from "next/server";
+import { backendUnavailableProblem } from "@/lib/backend-failure";
 import { buildBackendUrl } from "@/lib/backend-url";
 
 const forwardedHeaders = ["accept", "content-type", "if-match"];
@@ -30,8 +31,13 @@ async function forward(
     );
   }
 
-  const { getToken } = await auth();
-  const token = await getToken();
+  let token: string | null;
+  try {
+    const { getToken } = await auth();
+    token = await getToken();
+  } catch (error) {
+    return Response.json(backendUnavailableProblem(error), { status: 503 });
+  }
   if (!token) {
     return Response.json(
       {
@@ -59,12 +65,17 @@ async function forward(
       : await request.arrayBuffer();
   if (body && body.byteLength > maxRequestBytes) return requestTooLarge();
 
-  const response = await fetch(url, {
-    method: request.method,
-    headers,
-    body,
-    redirect: "manual",
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: request.method,
+      headers,
+      body,
+      redirect: "manual",
+    });
+  } catch (error) {
+    return Response.json(backendUnavailableProblem(error), { status: 503 });
+  }
 
   const responseHeaders = new Headers();
   const contentType = response.headers.get("content-type");

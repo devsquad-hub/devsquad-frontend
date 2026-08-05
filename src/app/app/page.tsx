@@ -1,6 +1,7 @@
 import { DashboardView } from "@/components/dashboard-view";
 import { OnboardingState } from "@/components/onboarding-state";
 import { BackendError, backendFetch } from "@/lib/api";
+import { isAccountNotReadyProblem } from "@/lib/backend-failure";
 import type { Account, PageResponse, Project } from "@/lib/api-types";
 
 export default async function DashboardPage() {
@@ -66,9 +67,7 @@ async function loadDashboard() {
   } catch (error) {
     if (
       error instanceof BackendError &&
-      (error.problem.status === 404 ||
-        error.problem.status === 401 ||
-        error.problem.code === "account_not_synchronized")
+      isAccountNotReadyProblem(error.problem)
     ) {
       return { kind: "onboarding" as const };
     }

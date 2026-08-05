@@ -1,6 +1,7 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
+import { backendUnavailableProblem } from "./backend-failure";
 import { parseProblem, type ProblemDetail } from "./problem";
 
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8080";
@@ -36,11 +37,16 @@ export async function backendFetch<T>(
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${backendUrl.replace(/\/$/, "")}${path}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${backendUrl.replace(/\/$/, "")}${path}`, {
+      ...options,
+      headers,
+      cache: "no-store",
+    });
+  } catch (error) {
+    throw new BackendError(backendUnavailableProblem(error));
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => undefined);
