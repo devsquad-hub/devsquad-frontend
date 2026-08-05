@@ -63,7 +63,7 @@ export function AuthControls() {
         className="header-link header-auth-link"
         redirectUrl={redirectUrl}
       >
-        Confirmar sessão
+        Resolver acesso
       </SignInAction>
     );
   }
@@ -140,7 +140,7 @@ export function AuthGate({
           className="button button-primary"
           redirectUrl={redirectUrl}
         >
-          Confirmar sessão
+          Resolver acesso
         </SignInAction>
       </div>
     );

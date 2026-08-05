@@ -61,6 +61,12 @@ export function authPresentationState({
   return hasUser ? "pending" : "signed-out";
 }
 
+export function signInScreenState(
+  state: AuthPresentationState,
+): "form" | "restart-session" {
+  return state === "pending" ? "restart-session" : "form";
+}
+
 function clerkErrorCode(error: unknown): string | undefined {
   if (!isClerkError(error)) return undefined;
   return error.errors?.[0]?.code;

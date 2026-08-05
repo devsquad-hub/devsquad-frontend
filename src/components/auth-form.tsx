@@ -1,11 +1,16 @@
 "use client";
 
-import { useSignIn, useSignUp } from "@clerk/nextjs";
+import { useAuth, useSignIn, useSignUp, useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
-import { authErrorMessage, signInNextStep } from "@/lib/auth-flow";
+import {
+  authErrorMessage,
+  authPresentationState,
+  signInNextStep,
+  signInScreenState,
+} from "@/lib/auth-flow";
 
 type AuthMode = "sign-in" | "sign-up";
 type AuthStep = "credentials" | "verification" | "client-trust";
@@ -17,6 +22,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const searchParams = useSearchParams();
   const signInState = useSignIn();
   const signUpState = useSignUp();
+  const { isLoaded: isAuthLoaded, isSignedIn, signOut } = useAuth();
+  const { isLoaded: isUserLoaded, user } = useUser();
   const redirectUrl = useMemo(
     () => getSafeRedirect(searchParams.get("redirect_url")),
     [searchParams],
@@ -31,6 +38,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const [pending, setPending] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
   const isSignUp = mode === "sign-up";
+  const screenState = signInScreenState(
+    authPresentationState({
+      isAuthLoaded,
+      isUserLoaded,
+      isSignedIn,
+      hasUser: Boolean(user),
+    }),
+  );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -232,22 +247,43 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     }
   };
 
+  const restartPendingSession = async () => {
+    setError(undefined);
+    setPending(true);
+
+    try {
+      await signOut({
+        redirectUrl: buildAuthHref(
+          isSignUp ? "/sign-up" : "/sign-in",
+          redirectUrl,
+        ),
+      });
+    } catch {
+      setError("Não foi possível reiniciar sua sessão. Tente novamente.");
+      setPending(false);
+    }
+  };
+
   const heading =
-    isSignUp && step === "verification"
-      ? "Confirme seu e-mail"
-      : step === "client-trust"
-        ? "Confirme este dispositivo"
-        : isSignUp
-          ? "Entre para construir junto"
-          : "Volte para o trabalho";
+    screenState === "restart-session"
+      ? "Reinicie seu acesso"
+      : isSignUp && step === "verification"
+        ? "Confirme seu e-mail"
+        : step === "client-trust"
+          ? "Confirme este dispositivo"
+          : isSignUp
+            ? "Entre para construir junto"
+            : "Volte para o trabalho";
   const description =
-    isSignUp && step === "verification"
-      ? `Enviamos um código para ${identifier}.`
-      : step === "client-trust"
-        ? `Enviamos um código para ${identifier}. Use-o para confirmar este dispositivo.`
-        : isSignUp
-          ? "Crie seu perfil e encontre projetos que precisam das suas habilidades."
-          : "Acesse seu painel, acompanhe candidaturas e mantenha seus projetos em movimento.";
+    screenState === "restart-session"
+      ? "Encontramos uma sessão incompleta neste navegador. Saia dela para iniciar o acesso novamente com segurança."
+      : isSignUp && step === "verification"
+        ? `Enviamos um código para ${identifier}.`
+        : step === "client-trust"
+          ? `Enviamos um código para ${identifier}. Use-o para confirmar este dispositivo.`
+          : isSignUp
+            ? "Crie seu perfil e encontre projetos que precisam das suas habilidades."
+            : "Acesse seu painel, acompanhe candidaturas e mantenha seus projetos em movimento.";
 
   return (
     <section className="auth-layout" aria-labelledby="auth-heading">
@@ -283,140 +319,171 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <p>{description}</p>
         </div>
 
-        {step === "credentials" && (
-          <>
+        {screenState === "restart-session" ? (
+          <div className="form-stack auth-form">
+            <p className="field-hint">
+              Isso não apaga sua conta. Depois de reiniciar, você poderá entrar
+              com Google ou e-mail e receber um novo código, se necessário.
+            </p>
+            {error && (
+              <p className="form-error" role="alert" aria-live="polite">
+                {error}
+              </p>
+            )}
             <button
-              className="auth-google-button"
+              className="button button-primary auth-submit"
               type="button"
-              onClick={() => void signInWithGoogle()}
-              disabled={pending || googlePending}
+              onClick={() => void restartPendingSession()}
+              disabled={pending}
             >
-              <GoogleMark />
-              {googlePending ? "Abrindo Google…" : "Continuar com Google"}
+              {pending ? "Reiniciando…" : "Sair e entrar novamente"}
             </button>
-            <div className="auth-divider" aria-hidden="true">
-              <span>ou continue com e-mail</span>
-            </div>
+          </div>
+        ) : (
+          <>
+            {step === "credentials" && (
+              <>
+                <button
+                  className="auth-google-button"
+                  type="button"
+                  onClick={() => void signInWithGoogle()}
+                  disabled={pending || googlePending}
+                >
+                  <GoogleMark />
+                  {googlePending ? "Abrindo Google…" : "Continuar com Google"}
+                </button>
+                <div className="auth-divider" aria-hidden="true">
+                  <span>ou continue com e-mail</span>
+                </div>
+              </>
+            )}
+
+            <form
+              className="form-stack auth-form"
+              onSubmit={submit}
+              noValidate
+              aria-busy={pending || googlePending}
+            >
+              {isSignUp && step === "credentials" && (
+                <div className="auth-name-fields">
+                  <div className="field">
+                    <label htmlFor="first-name">Nome</label>
+                    <input
+                      id="first-name"
+                      name="firstName"
+                      autoComplete="given-name"
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="last-name">Sobrenome</label>
+                    <input
+                      id="last-name"
+                      name="lastName"
+                      autoComplete="family-name"
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {step === "verification" || step === "client-trust" ? (
+                <div className="field">
+                  <label htmlFor="verification-code">
+                    Código de confirmação
+                  </label>
+                  <input
+                    id="verification-code"
+                    name="verificationCode"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={verificationCode}
+                    onChange={(event) =>
+                      setVerificationCode(event.target.value)
+                    }
+                    required
+                  />
+                  <span className="field-hint">
+                    O código expira em alguns minutos. Você pode solicitar outro
+                    pelo fluxo de cadastro.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="field">
+                    <label htmlFor="auth-email">E-mail</label>
+                    <input
+                      id="auth-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      value={identifier}
+                      onChange={(event) => setIdentifier(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="auth-password">Senha</label>
+                    <input
+                      id="auth-password"
+                      name="password"
+                      type="password"
+                      autoComplete={
+                        isSignUp ? "new-password" : "current-password"
+                      }
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required
+                    />
+                    {isSignUp && (
+                      <span className="field-hint">
+                        Use pelo menos oito caracteres e evite informações
+                        óbvias.
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {error && (
+                <p className="form-error" role="alert" aria-live="polite">
+                  {error}
+                </p>
+              )}
+
+              <button
+                className="button button-primary auth-submit"
+                type="submit"
+                disabled={pending || googlePending}
+              >
+                {pending
+                  ? "Aguarde…"
+                  : step === "verification" || step === "client-trust"
+                    ? "Confirmar e entrar"
+                    : isSignUp
+                      ? "Criar minha conta"
+                      : "Entrar"}
+              </button>
+            </form>
+
+            <div id="clerk-captcha" className="clerk-captcha-slot" />
+
+            <p className="auth-switch">
+              {isSignUp ? "Já tem uma conta?" : "Ainda não faz parte?"}{" "}
+              <Link
+                href={buildAuthHref(
+                  isSignUp ? "/sign-in" : "/sign-up",
+                  redirectUrl,
+                )}
+              >
+                {isSignUp ? "Entrar" : "Criar conta"}
+              </Link>
+            </p>
           </>
         )}
-
-        <form
-          className="form-stack auth-form"
-          onSubmit={submit}
-          noValidate
-          aria-busy={pending || googlePending}
-        >
-          {isSignUp && step === "credentials" && (
-            <div className="auth-name-fields">
-              <div className="field">
-                <label htmlFor="first-name">Nome</label>
-                <input
-                  id="first-name"
-                  name="firstName"
-                  autoComplete="given-name"
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="last-name">Sobrenome</label>
-                <input
-                  id="last-name"
-                  name="lastName"
-                  autoComplete="family-name"
-                  value={lastName}
-                  onChange={(event) => setLastName(event.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === "verification" || step === "client-trust" ? (
-            <div className="field">
-              <label htmlFor="verification-code">Código de confirmação</label>
-              <input
-                id="verification-code"
-                name="verificationCode"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value)}
-                required
-              />
-              <span className="field-hint">
-                O código expira em alguns minutos. Você pode solicitar outro
-                pelo fluxo de cadastro.
-              </span>
-            </div>
-          ) : (
-            <>
-              <div className="field">
-                <label htmlFor="auth-email">E-mail</label>
-                <input
-                  id="auth-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={identifier}
-                  onChange={(event) => setIdentifier(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="auth-password">Senha</label>
-                <input
-                  id="auth-password"
-                  name="password"
-                  type="password"
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
-                {isSignUp && (
-                  <span className="field-hint">
-                    Use pelo menos oito caracteres e evite informações óbvias.
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-
-          {error && (
-            <p className="form-error" role="alert" aria-live="polite">
-              {error}
-            </p>
-          )}
-
-          <button
-            className="button button-primary auth-submit"
-            type="submit"
-            disabled={pending || googlePending}
-          >
-            {pending
-              ? "Aguarde…"
-              : step === "verification" || step === "client-trust"
-                ? "Confirmar e entrar"
-                : isSignUp
-                  ? "Criar minha conta"
-                  : "Entrar"}
-          </button>
-        </form>
-
-        <div id="clerk-captcha" className="clerk-captcha-slot" />
-
-        <p className="auth-switch">
-          {isSignUp ? "Já tem uma conta?" : "Ainda não faz parte?"}{" "}
-          <Link
-            href={buildAuthHref(
-              isSignUp ? "/sign-in" : "/sign-up",
-              redirectUrl,
-            )}
-          >
-            {isSignUp ? "Entrar" : "Criar conta"}
-          </Link>
-        </p>
       </div>
     </section>
   );

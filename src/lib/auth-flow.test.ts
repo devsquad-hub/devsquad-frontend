@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   authErrorMessage,
   authPresentationState,
+  signInScreenState,
   signInNextStep,
 } from "./auth-flow";
 
@@ -47,5 +48,11 @@ describe("authPresentationState", () => {
         hasUser: true,
       }),
     ).toBe("pending");
+  });
+});
+
+describe("signInScreenState", () => {
+  it("pede para reiniciar uma sessão pendente em vez de tentar outro login", () => {
+    expect(signInScreenState("pending")).toBe("restart-session");
   });
 });
