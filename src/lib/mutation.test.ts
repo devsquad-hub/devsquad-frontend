@@ -30,4 +30,13 @@ describe("requestMutation", () => {
     expect(failed.ok).toBe(false);
     expect(mutationErrorMessage({ detail: "falhou" })).toBe("falhou");
   });
+
+  it("does not expose an English API detail to the user", () => {
+    expect(
+      mutationErrorMessage({
+        detail: "Project was not found",
+        code: "project_not_found",
+      }),
+    ).toBe("Não encontramos este projeto.");
+  });
 });

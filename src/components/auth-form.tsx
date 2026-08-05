@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
+import { authErrorMessage, signInNextStep } from "@/lib/auth-flow";
 
 type AuthMode = "sign-in" | "sign-up";
-type AuthStep = "credentials" | "verification";
+type AuthStep = "credentials" | "verification" | "client-trust";
 
 export const AUTH_REDIRECT_STORAGE_KEY = "devsquad:auth-redirect";
 
@@ -39,13 +40,15 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     try {
       if (isSignUp && step === "verification") {
         await verifyEmail();
+      } else if (step === "client-trust") {
+        await verifyClientTrust();
       } else if (isSignUp) {
         await createAccount();
       } else {
         await signIn();
       }
     } catch (caughtError) {
-      setError(getAuthError(caughtError));
+      setError(authErrorMessage(caughtError));
     } finally {
       setPending(false);
     }
@@ -65,14 +68,36 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       throw result.error;
     }
 
-    if (resource.status !== "complete") {
-      throw new Error(
-        resource.status === "needs_second_factor"
-          ? "Esta conta exige uma segunda etapa de verificação, ainda não configurada neste formulário."
-          : "Não foi possível concluir o login. Confira os dados e tente novamente.",
-      );
-    }
+    switch (signInNextStep(resource.status)) {
+      case "complete":
+        await finalizeSignIn(resource);
+        return;
+      case "client-trust": {
+        const supportsEmailCode = resource.supportedSecondFactors.some(
+          (factor) => factor.strategy === "email_code",
+        );
+        if (!supportsEmailCode) {
+          throw new Error("client_trust_without_email_code");
+        }
 
+        const verification = await resource.mfa.sendEmailCode();
+        if (verification.error) {
+          throw verification.error;
+        }
+
+        setStep("client-trust");
+        return;
+      }
+      case "second-factor":
+        throw new Error("second_factor_required");
+      default:
+        throw new Error("sign_in_not_complete");
+    }
+  };
+
+  const finalizeSignIn = async (
+    resource: NonNullable<typeof signInState.signIn>,
+  ) => {
     const finalized = await resource.finalize();
     if (finalized.error) {
       throw finalized.error;
@@ -80,6 +105,25 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     router.replace(redirectUrl);
     router.refresh();
+  };
+
+  const verifyClientTrust = async () => {
+    const { signIn: resource } = signInState;
+    if (!resource) {
+      throw new Error("auth_not_loaded");
+    }
+
+    const result = await resource.mfa.verifyEmailCode({
+      code: verificationCode.trim(),
+    });
+    if (result.error) {
+      throw result.error;
+    }
+    if (resource.status !== "complete") {
+      throw new Error("client_trust_not_complete");
+    }
+
+    await finalizeSignIn(resource);
   };
 
   const createAccount = async () => {
@@ -184,22 +228,26 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       }
     } catch (caughtError) {
       setGooglePending(false);
-      setError(getAuthError(caughtError));
+      setError(authErrorMessage(caughtError));
     }
   };
 
   const heading =
     isSignUp && step === "verification"
       ? "Confirme seu e-mail"
-      : isSignUp
-        ? "Entre para construir junto"
-        : "Volte para o trabalho";
+      : step === "client-trust"
+        ? "Confirme este dispositivo"
+        : isSignUp
+          ? "Entre para construir junto"
+          : "Volte para o trabalho";
   const description =
     isSignUp && step === "verification"
       ? `Enviamos um código para ${identifier}.`
-      : isSignUp
-        ? "Crie seu perfil e encontre projetos que precisam das suas habilidades."
-        : "Acesse seu painel, acompanhe candidaturas e mantenha seus projetos em movimento.";
+      : step === "client-trust"
+        ? `Enviamos um código para ${identifier}. Use-o para confirmar este dispositivo.`
+        : isSignUp
+          ? "Crie seu perfil e encontre projetos que precisam das suas habilidades."
+          : "Acesse seu painel, acompanhe candidaturas e mantenha seus projetos em movimento.";
 
   return (
     <section className="auth-layout" aria-labelledby="auth-heading">
@@ -284,7 +332,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             </div>
           )}
 
-          {step === "verification" ? (
+          {step === "verification" || step === "client-trust" ? (
             <div className="field">
               <label htmlFor="verification-code">Código de confirmação</label>
               <input
@@ -348,7 +396,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           >
             {pending
               ? "Aguarde…"
-              : step === "verification"
+              : step === "verification" || step === "client-trust"
                 ? "Confirmar e entrar"
                 : isSignUp
                   ? "Criar minha conta"
@@ -414,31 +462,4 @@ function getSafeRedirect(value: string | null) {
 
 function buildAuthHref(path: "/sign-in" | "/sign-up", redirectUrl: string) {
   return `${path}?redirect_url=${encodeURIComponent(redirectUrl)}`;
-}
-
-function getAuthError(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "longMessage" in error &&
-    typeof error.longMessage === "string"
-  ) {
-    return error.longMessage;
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error !== null && "errors" in error) {
-    const errors = (
-      error as { errors?: Array<{ longMessage?: string; message?: string }> }
-    ).errors;
-    const firstError = errors?.[0];
-    if (firstError?.longMessage || firstError?.message) {
-      return firstError.longMessage ?? firstError.message;
-    }
-  }
-
-  return "Não foi possível concluir a autenticação. Tente novamente.";
 }

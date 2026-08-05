@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { AUTH_REDIRECT_STORAGE_KEY } from "@/components/auth-form";
+import { authErrorMessage, signInNextStep } from "@/lib/auth-flow";
 
 export default function SsoCallbackPage() {
   const clerk = useClerk();
@@ -15,8 +16,10 @@ export default function SsoCallbackPage() {
   const hasRun = useRef(false);
   const [error, setError] = useState<string>();
   const [needsDetails, setNeedsDetails] = useState(false);
+  const [needsClientTrust, setNeedsClientTrust] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -59,6 +62,23 @@ export default function SsoCallbackPage() {
       try {
         if (signIn.status === "complete") {
           await finalizeSignIn(signIn, target);
+          return;
+        }
+
+        if (signInNextStep(signIn.status) === "client-trust") {
+          const supportsEmailCode = signIn.supportedSecondFactors.some(
+            (factor) => factor.strategy === "email_code",
+          );
+          if (!supportsEmailCode) {
+            throw new Error("client_trust_without_email_code");
+          }
+
+          const verification = await signIn.mfa.sendEmailCode();
+          if (verification.error) {
+            throw verification.error;
+          }
+
+          setNeedsClientTrust(true);
           return;
         }
 
@@ -117,7 +137,7 @@ export default function SsoCallbackPage() {
           "O Google concluiu a autenticação, mas a sessão precisa de uma etapa adicional.",
         );
       } catch (caughtError) {
-        setError(getAuthError(caughtError));
+        setError(authErrorMessage(caughtError));
       } finally {
         setPending(false);
       }
@@ -206,11 +226,98 @@ export default function SsoCallbackPage() {
         throw finalized.error;
       }
     } catch (caughtError) {
-      setError(getAuthError(caughtError));
+      setError(authErrorMessage(caughtError));
     } finally {
       setPending(false);
     }
   };
+
+  const submitClientTrust = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(undefined);
+    setPending(true);
+
+    try {
+      const signIn = signInState.signIn;
+      if (!signIn) {
+        throw new Error("auth_not_loaded");
+      }
+
+      const result = await signIn.mfa.verifyEmailCode({
+        code: verificationCode.trim(),
+      });
+      if (result.error) {
+        throw result.error;
+      }
+      if (signIn.status !== "complete") {
+        throw new Error("client_trust_not_complete");
+      }
+
+      const target = readAuthRedirect();
+      const finalized = await signIn.finalize({
+        navigate: async ({ decorateUrl }) => {
+          const destination = decorateUrl(target);
+          if (destination.startsWith("http")) {
+            window.location.assign(destination);
+          } else {
+            router.replace(destination);
+            router.refresh();
+          }
+        },
+      });
+      if (finalized.error) {
+        throw finalized.error;
+      }
+    } catch (caughtError) {
+      setError(authErrorMessage(caughtError));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (needsClientTrust) {
+    return (
+      <main id="main-content" className="auth-page">
+        <section className="auth-callback-card" aria-labelledby="sso-heading">
+          <BrandMark />
+          <p className="eyebrow">Confirmação de segurança</p>
+          <h1 id="sso-heading">Confirme este dispositivo</h1>
+          <p>
+            Enviamos um código para seu e-mail. Informe-o para concluir o acesso
+            à comunidade.
+          </p>
+          <form className="form-stack" onSubmit={submitClientTrust}>
+            <div className="field">
+              <label htmlFor="sso-client-trust-code">
+                Código de confirmação
+              </label>
+              <input
+                id="sso-client-trust-code"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value)}
+                required
+              />
+            </div>
+            {error && (
+              <p className="form-error" role="alert" aria-live="polite">
+                {error}
+              </p>
+            )}
+            <button
+              className="button button-primary auth-submit"
+              type="submit"
+              disabled={pending}
+            >
+              {pending ? "Confirmando…" : "Confirmar e entrar"}
+            </button>
+          </form>
+          <div id="clerk-captcha" className="clerk-captcha-slot" />
+        </section>
+      </main>
+    );
+  }
 
   if (needsDetails) {
     return (
@@ -349,31 +456,4 @@ function isComplete(status: string) {
 
 function buildAuthHref(path: "/sign-in" | "/sign-up", redirectUrl: string) {
   return `${path}?redirect_url=${encodeURIComponent(redirectUrl)}`;
-}
-
-function getAuthError(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "longMessage" in error &&
-    typeof error.longMessage === "string"
-  ) {
-    return error.longMessage;
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error !== null && "errors" in error) {
-    const errors = (
-      error as { errors?: Array<{ longMessage?: string; message?: string }> }
-    ).errors;
-    const firstError = errors?.[0];
-    if (firstError?.longMessage || firstError?.message) {
-      return firstError.longMessage ?? firstError.message;
-    }
-  }
-
-  return "Não foi possível concluir a autenticação. Tente novamente.";
 }

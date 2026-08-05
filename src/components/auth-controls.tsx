@@ -9,6 +9,7 @@ import {
 } from "@primer/octicons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { authPresentationState } from "@/lib/auth-flow";
 
 type AuthActionProps = {
   children: React.ReactNode;
@@ -41,15 +42,33 @@ export function SignUpAction({
 }
 
 export function AuthControls() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isUserLoaded, user } = useUser();
   const pathname = usePathname();
   const redirectUrl = isAuthPath(pathname) ? undefined : pathname;
+  const state = authPresentationState({
+    isAuthLoaded,
+    isUserLoaded,
+    isSignedIn,
+    hasUser: Boolean(user),
+  });
 
-  if (!isLoaded) {
+  if (state === "loading") {
     return <span className="auth-loading" aria-label="Carregando conta" />;
   }
 
-  if (!isSignedIn) {
+  if (state === "pending") {
+    return (
+      <SignInAction
+        className="header-link header-auth-link"
+        redirectUrl={redirectUrl}
+      >
+        Confirmar sessão
+      </SignInAction>
+    );
+  }
+
+  if (state === "signed-out") {
     return (
       <>
         <SignInAction
@@ -100,13 +119,34 @@ export function AuthGate({
   children: React.ReactNode;
   redirectUrl?: string;
 }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isUserLoaded, user } = useUser();
+  const state = authPresentationState({
+    isAuthLoaded,
+    isUserLoaded,
+    isSignedIn,
+    hasUser: Boolean(user),
+  });
 
-  if (!isLoaded) {
+  if (state === "loading") {
     return <p className="muted auth-gate-status">Verificando sua sessão…</p>;
   }
 
-  if (!isSignedIn) {
+  if (state === "pending") {
+    return (
+      <div className="auth-gate">
+        <p>Sua sessão precisa ser confirmada antes de continuar.</p>
+        <SignInAction
+          className="button button-primary"
+          redirectUrl={redirectUrl}
+        >
+          Confirmar sessão
+        </SignInAction>
+      </div>
+    );
+  }
+
+  if (state === "signed-out") {
     return (
       <div className="auth-gate">
         <p>Entre na comunidade para enviar sua candidatura.</p>
