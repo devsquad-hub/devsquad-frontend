@@ -258,6 +258,7 @@ export default function SsoCallbackPage() {
               {pending ? "Salvando…" : "Concluir cadastro"}
             </button>
           </form>
+          <div id="clerk-captcha" className="clerk-captcha-slot" />
         </section>
       </main>
     );
@@ -282,6 +283,7 @@ export default function SsoCallbackPage() {
               Ir para a comunidade
             </Link>
           </div>
+          <div id="clerk-captcha" className="clerk-captcha-slot" />
         </section>
       </main>
     );
@@ -301,6 +303,7 @@ export default function SsoCallbackPage() {
           DevSquad.
         </p>
         <span className="auth-callback-spinner" aria-hidden="true" />
+        <div id="clerk-captcha" className="clerk-captcha-slot" />
       </section>
     </main>
   );

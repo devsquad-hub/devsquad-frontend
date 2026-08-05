@@ -356,6 +356,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           </button>
         </form>
 
+        <div id="clerk-captcha" className="clerk-captcha-slot" />
+
         <p className="auth-switch">
           {isSignUp ? "Já tem uma conta?" : "Ainda não faz parte?"}{" "}
           <Link

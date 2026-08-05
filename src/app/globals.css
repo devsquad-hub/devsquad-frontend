@@ -1333,6 +1333,14 @@ select {
   margin-top: 10px;
 }
 
+.clerk-captcha-slot:empty {
+  display: none;
+}
+
+.clerk-captcha-slot:not(:empty) {
+  margin-top: 8px;
+}
+
 .auth-callback-actions {
   display: flex;
   flex-wrap: wrap;
