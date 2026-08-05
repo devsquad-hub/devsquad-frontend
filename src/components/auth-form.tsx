@@ -1,6 +1,12 @@
 "use client";
 
-import { useAuth, useSignIn, useSignUp, useUser } from "@clerk/nextjs";
+import {
+  useAuth,
+  useSession,
+  useSignIn,
+  useSignUp,
+  useUser,
+} from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,6 +14,8 @@ import { type FormEvent, useMemo, useState } from "react";
 import {
   authErrorMessage,
   authPresentationState,
+  pendingSessionId,
+  pendingSessionSignOutOptions,
   signInNextStep,
   signInScreenState,
 } from "@/lib/auth-flow";
@@ -23,7 +31,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const signInState = useSignIn();
   const signUpState = useSignUp();
   const { isLoaded: isAuthLoaded, isSignedIn, signOut } = useAuth();
+  const { isLoaded: isSessionLoaded, session } = useSession();
   const { isLoaded: isUserLoaded, user } = useUser();
+  const pendingSession = pendingSessionId(session);
   const redirectUrl = useMemo(
     () => getSafeRedirect(searchParams.get("redirect_url")),
     [searchParams],
@@ -42,9 +52,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     authPresentationState({
       isAuthLoaded,
       isUserLoaded,
+      isSessionLoaded,
       isSignedIn,
       hasUser: Boolean(user),
+      hasPendingSession: Boolean(pendingSession),
     }),
+    step,
   );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -252,12 +265,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     setPending(true);
 
     try {
-      await signOut({
-        redirectUrl: buildAuthHref(
-          isSignUp ? "/sign-up" : "/sign-in",
-          redirectUrl,
-        ),
-      });
+      const restartUrl = buildAuthHref(
+        isSignUp ? "/sign-up" : "/sign-in",
+        redirectUrl,
+      );
+
+      await signOut(pendingSessionSignOutOptions(pendingSession, restartUrl));
     } catch {
       setError("Não foi possível reiniciar sua sessão. Tente novamente.");
       setPending(false);

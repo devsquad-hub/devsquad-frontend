@@ -50,20 +50,40 @@ export function authPresentationState({
   isUserLoaded,
   isSignedIn,
   hasUser,
+  isSessionLoaded = true,
+  hasPendingSession = false,
 }: {
   isAuthLoaded: boolean;
   isUserLoaded: boolean;
   isSignedIn: boolean | undefined;
   hasUser: boolean;
+  isSessionLoaded?: boolean;
+  hasPendingSession?: boolean;
 }): AuthPresentationState {
-  if (!isAuthLoaded || !isUserLoaded) return "loading";
+  if (!isAuthLoaded || !isUserLoaded || !isSessionLoaded) return "loading";
+  if (hasPendingSession) return "pending";
   if (isSignedIn) return "signed-in";
   return hasUser ? "pending" : "signed-out";
 }
 
+export function pendingSessionId(
+  session: { id: string; status: string } | null | undefined,
+) {
+  return session?.status === "pending" ? session.id : undefined;
+}
+
+export function pendingSessionSignOutOptions(
+  sessionId: string | undefined,
+  redirectUrl: string,
+): { sessionId?: string; redirectUrl: string } {
+  return sessionId ? { sessionId, redirectUrl } : { redirectUrl };
+}
+
 export function signInScreenState(
   state: AuthPresentationState,
+  step: "credentials" | "verification" | "client-trust" = "credentials",
 ): "form" | "restart-session" {
+  if (step !== "credentials") return "form";
   return state === "pending" ? "restart-session" : "form";
 }
 

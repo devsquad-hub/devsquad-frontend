@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   authErrorMessage,
   authPresentationState,
+  pendingSessionSignOutOptions,
+  pendingSessionId,
   signInScreenState,
   signInNextStep,
 } from "./auth-flow";
@@ -49,10 +51,58 @@ describe("authPresentationState", () => {
       }),
     ).toBe("pending");
   });
+
+  it("reconhece a sessão pendente mesmo quando Clerk marca o usuário como desconectado", () => {
+    expect(
+      authPresentationState({
+        isAuthLoaded: true,
+        isUserLoaded: true,
+        isSignedIn: false,
+        hasUser: false,
+        hasPendingSession: true,
+      }),
+    ).toBe("pending");
+  });
+});
+
+describe("pendingSessionId", () => {
+  it("retorna o ID somente de uma sessão pendente", () => {
+    expect(pendingSessionId({ id: "sess_pending", status: "pending" })).toBe(
+      "sess_pending",
+    );
+    expect(pendingSessionId({ id: "sess_active", status: "active" })).toBe(
+      undefined,
+    );
+  });
+});
+
+describe("pendingSessionSignOutOptions", () => {
+  it("mantém o redirecionamento e usa o ID quando ele existe", () => {
+    expect(
+      pendingSessionSignOutOptions(
+        "sess_pending",
+        "/sign-in?redirect_url=%2Fapp",
+      ),
+    ).toEqual({
+      sessionId: "sess_pending",
+      redirectUrl: "/sign-in?redirect_url=%2Fapp",
+    });
+  });
+
+  it("faz logout padrão quando o ID ainda não está disponível", () => {
+    expect(
+      pendingSessionSignOutOptions(undefined, "/sign-in?redirect_url=%2Fapp"),
+    ).toEqual({ redirectUrl: "/sign-in?redirect_url=%2Fapp" });
+  });
 });
 
 describe("signInScreenState", () => {
   it("pede para reiniciar uma sessão pendente em vez de tentar outro login", () => {
     expect(signInScreenState("pending")).toBe("restart-session");
+  });
+
+  it("mantém o formulário quando a própria autenticação aguarda confirmação", () => {
+    expect(signInScreenState("pending", "client-trust")).toBe("form");
+    expect(signInScreenState("pending", "verification")).toBe("form");
   });
 });

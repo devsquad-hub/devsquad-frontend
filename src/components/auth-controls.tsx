@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useSession, useUser } from "@clerk/nextjs";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -9,7 +9,7 @@ import {
 } from "@primer/octicons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { authPresentationState } from "@/lib/auth-flow";
+import { authPresentationState, pendingSessionId } from "@/lib/auth-flow";
 
 type AuthActionProps = {
   children: React.ReactNode;
@@ -43,14 +43,17 @@ export function SignUpAction({
 
 export function AuthControls() {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isSessionLoaded, session } = useSession();
   const { isLoaded: isUserLoaded, user } = useUser();
   const pathname = usePathname();
   const redirectUrl = isAuthPath(pathname) ? undefined : pathname;
   const state = authPresentationState({
     isAuthLoaded,
     isUserLoaded,
+    isSessionLoaded,
     isSignedIn,
     hasUser: Boolean(user),
+    hasPendingSession: Boolean(pendingSessionId(session)),
   });
 
   if (state === "loading") {
@@ -120,12 +123,15 @@ export function AuthGate({
   redirectUrl?: string;
 }) {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isSessionLoaded, session } = useSession();
   const { isLoaded: isUserLoaded, user } = useUser();
   const state = authPresentationState({
     isAuthLoaded,
     isUserLoaded,
+    isSessionLoaded,
     isSignedIn,
     hasUser: Boolean(user),
+    hasPendingSession: Boolean(pendingSessionId(session)),
   });
 
   if (state === "loading") {
