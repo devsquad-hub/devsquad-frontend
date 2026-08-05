@@ -19,3 +19,20 @@ export function isAccountNotReadyProblem(problem: ProblemDetail): boolean {
     problem.code === "account_not_synchronized"
   );
 }
+
+export function isBackendError(
+  error: unknown,
+): error is { problem: ProblemDetail } {
+  if (!isRecord(error) || !isRecord(error.problem)) return false;
+  const problem = error.problem;
+  return (
+    typeof problem.title === "string" &&
+    typeof problem.status === "number" &&
+    typeof problem.detail === "string" &&
+    typeof problem.code === "string"
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

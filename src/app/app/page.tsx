@@ -1,7 +1,10 @@
 import { DashboardView } from "@/components/dashboard-view";
 import { OnboardingState } from "@/components/onboarding-state";
-import { BackendError, backendFetch } from "@/lib/api";
-import { isAccountNotReadyProblem } from "@/lib/backend-failure";
+import { backendFetch } from "@/lib/api";
+import {
+  isAccountNotReadyProblem,
+  isBackendError,
+} from "@/lib/backend-failure";
 import type { Account, PageResponse, Project } from "@/lib/api-types";
 
 export default async function DashboardPage() {
@@ -65,10 +68,7 @@ async function loadDashboard() {
       ).length,
     };
   } catch (error) {
-    if (
-      error instanceof BackendError &&
-      isAccountNotReadyProblem(error.problem)
-    ) {
+    if (isBackendError(error) && isAccountNotReadyProblem(error.problem)) {
       return { kind: "onboarding" as const };
     }
     return { kind: "error" as const };
