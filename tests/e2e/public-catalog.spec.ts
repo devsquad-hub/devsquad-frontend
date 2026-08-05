@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.beforeEach(() => {
@@ -61,6 +61,7 @@ test("has no automatically detectable accessibility violations", async ({
   page,
 }) => {
   await page.goto("/", { waitUntil: "networkidle" });
+  await settleReveals(page);
   const catalogResults = await new AxeBuilder({ page }).analyze();
   expect(catalogResults.violations).toEqual([]);
 
@@ -74,6 +75,16 @@ test("has no automatically detectable accessibility violations", async ({
   await expect(
     page.getByRole("heading", { name: "Sobre o projeto" }),
   ).toBeVisible();
+  await settleReveals(page);
   const projectResults = await new AxeBuilder({ page }).analyze();
   expect(projectResults.violations).toEqual([]);
 });
+
+async function settleReveals(page: Page) {
+  await page.evaluate(() => {
+    document
+      .querySelectorAll("[data-reveal]")
+      .forEach((element) => element.classList.add("is-visible"));
+  });
+  await page.waitForTimeout(550);
+}

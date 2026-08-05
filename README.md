@@ -11,8 +11,13 @@ npm install
 npm run dev
 ```
 
-Preencha as duas chaves Clerk antes de abrir a aplicação. O backend local deve estar disponível em
-`http://localhost:8080`.
+Preencha as chaves Clerk e confirme que o backend local está disponível em
+`http://localhost:8080`. Para habilitar o botão “Continuar com Google”, ative a conexão Google em
+Clerk Dashboard → SSO connections e inclua a origem da aplicação na lista de URLs permitidas. O fluxo
+usa o callback headless `/sso-callback`; nenhum componente visual do Clerk é renderizado.
+
+Em produção, configure as mesmas variáveis no Coolify. O callback deve estar disponível em
+`https://devsquad.guilhermemarschall.com.br/sso-callback`.
 
 ## Verificação
 

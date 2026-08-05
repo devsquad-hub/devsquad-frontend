@@ -9,6 +9,8 @@ import { type FormEvent, useMemo, useState } from "react";
 type AuthMode = "sign-in" | "sign-up";
 type AuthStep = "credentials" | "verification";
 
+export const AUTH_REDIRECT_STORAGE_KEY = "devsquad:auth-redirect";
+
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +28,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const isSignUp = mode === "sign-up";
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -150,6 +153,41 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     router.refresh();
   };
 
+  const signInWithGoogle = async () => {
+    setError(undefined);
+    setGooglePending(true);
+
+    try {
+      const resource = isSignUp ? signUpState.signUp : signInState.signIn;
+      if (!resource) {
+        throw new Error("A autenticação ainda está carregando.");
+      }
+
+      try {
+        window.sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, redirectUrl);
+      } catch {
+        // Session storage can be unavailable in hardened browser contexts.
+        // Clerk still receives the safe redirect in the OAuth request.
+      }
+
+      const result = await resource.sso({
+        strategy: "oauth_google",
+        redirectCallbackUrl: "/sso-callback",
+        redirectUrl,
+        ...(isSignUp && firstName.trim()
+          ? { firstName: firstName.trim() }
+          : {}),
+        ...(isSignUp && lastName.trim() ? { lastName: lastName.trim() } : {}),
+      });
+      if (result.error) {
+        throw result.error;
+      }
+    } catch (caughtError) {
+      setGooglePending(false);
+      setError(getAuthError(caughtError));
+    }
+  };
+
   const heading =
     isSignUp && step === "verification"
       ? "Confirme seu e-mail"
@@ -197,7 +235,29 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <p>{description}</p>
         </div>
 
-        <form className="form-stack auth-form" onSubmit={submit} noValidate>
+        {step === "credentials" && (
+          <>
+            <button
+              className="auth-google-button"
+              type="button"
+              onClick={() => void signInWithGoogle()}
+              disabled={pending || googlePending}
+            >
+              <GoogleMark />
+              {googlePending ? "Abrindo Google…" : "Continuar com Google"}
+            </button>
+            <div className="auth-divider" aria-hidden="true">
+              <span>ou continue com e-mail</span>
+            </div>
+          </>
+        )}
+
+        <form
+          className="form-stack auth-form"
+          onSubmit={submit}
+          noValidate
+          aria-busy={pending || googlePending}
+        >
           {isSignUp && step === "credentials" && (
             <div className="auth-name-fields">
               <div className="field">
@@ -284,7 +344,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <button
             className="button button-primary auth-submit"
             type="submit"
-            disabled={pending}
+            disabled={pending || googlePending}
           >
             {pending
               ? "Aguarde…"
@@ -309,6 +369,36 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </p>
       </div>
     </section>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg
+      className="auth-google-mark"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="#4285F4"
+        d="M21.35 12.27c0-.71-.06-1.4-.18-2.05H12v3.88h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.69 2.91-4.18 2.91-7.21Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.55 0-4.71-1.72-5.49-4.03H3.26v2.52A9.74 9.74 0 0 0 12 21.6Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.51 13.69A5.86 5.86 0 0 1 6.2 12c0-.59.11-1.16.31-1.69V7.79H3.26A9.6 9.6 0 0 0 2.25 12c0 1.52.36 2.96 1.01 4.21l3.25-2.52Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6.28c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.84 3.35 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.74 5.39l3.25 2.52c.78-2.31 2.94-4.03 5.49-4.03Z"
+      />
+    </svg>
   );
 }
 
