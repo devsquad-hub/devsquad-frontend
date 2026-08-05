@@ -61,6 +61,19 @@ test("has no automatically detectable accessibility violations", async ({
   page,
 }) => {
   await page.goto("/", { waitUntil: "networkidle" });
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations).toEqual([]);
+  const catalogResults = await new AxeBuilder({ page }).analyze();
+  expect(catalogResults.violations).toEqual([]);
+
+  const projectLink = page
+    .locator('a[href^="/hubs/"][href*="/projects/"]')
+    .first();
+  if ((await projectLink.count()) === 0) {
+    test.skip(true, "A seeded public project is required for this flow");
+  }
+  await projectLink.click();
+  await expect(
+    page.getByRole("heading", { name: "Sobre o projeto" }),
+  ).toBeVisible();
+  const projectResults = await new AxeBuilder({ page }).analyze();
+  expect(projectResults.violations).toEqual([]);
 });
