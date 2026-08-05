@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { OnboardingState } from "@/components/onboarding-state";
-import { backendFetch } from "@/lib/api";
+import { currentAccount } from "@/lib/api";
 import {
   isAccountNotReadyProblem,
   isBackendError,
@@ -19,7 +19,7 @@ export default async function AuthenticatedLayout({
   if (!userId) redirect("/sign-in?redirect_url=/app");
 
   try {
-    await backendFetch("/api/v1/me", { authenticated: true });
+    await currentAccount();
   } catch (error) {
     if (isBackendError(error) && isAccountNotReadyProblem(error.problem)) {
       return <OnboardingState />;

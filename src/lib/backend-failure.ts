@@ -13,11 +13,7 @@ export function backendUnavailableProblem(_cause?: unknown): ProblemDetail {
 }
 
 export function isAccountNotReadyProblem(problem: ProblemDetail): boolean {
-  return (
-    problem.status === 401 ||
-    problem.status === 404 ||
-    problem.code === "account_not_synchronized"
-  );
+  return problem.code === "account_not_synchronized";
 }
 
 export function isBackendError(

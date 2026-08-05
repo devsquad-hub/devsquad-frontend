@@ -1,8 +1,10 @@
 import "server-only";
 
 import { auth } from "@clerk/nextjs/server";
+import { cache } from "react";
 import { backendUnavailableProblem } from "./backend-failure";
 import { parseProblem, type ProblemDetail } from "./problem";
+import type { Account } from "./api-types";
 
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -56,3 +58,7 @@ export async function backendFetch<T>(
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+export const currentAccount = cache(() =>
+  backendFetch<Account>("/api/v1/me", { authenticated: true }),
+);

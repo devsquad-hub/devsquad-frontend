@@ -1,12 +1,9 @@
 import { PageHeading } from "@/components/page-heading";
 import { ProfileForm } from "@/components/profile-form";
-import { backendFetch } from "@/lib/api";
-import type { Account } from "@/lib/api-types";
+import { currentAccount } from "@/lib/api";
 
 export default async function ProfilePage() {
-  const account = await backendFetch<Account>("/api/v1/me", {
-    authenticated: true,
-  });
+  const account = await currentAccount();
   return (
     <div className="content-width">
       <PageHeading

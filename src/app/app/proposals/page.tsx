@@ -3,8 +3,8 @@ import { CommentDiscussionIcon } from "@primer/octicons-react";
 import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { DecisionForm, MutationButton } from "@/components/resource-actions";
-import { backendFetch } from "@/lib/api";
-import type { Account, HubMembership, Proposal } from "@/lib/api-types";
+import { backendFetch, currentAccount } from "@/lib/api";
+import type { HubMembership, Proposal } from "@/lib/api-types";
 
 export default async function ProposalsPage() {
   const result = await loadProposals();
@@ -104,7 +104,7 @@ async function loadProposals() {
           }),
         ),
       ),
-      backendFetch<Account>("/api/v1/me", { authenticated: true }),
+      currentAccount(),
     ]);
     return { hubs, account, proposals: groups.flat() };
   } catch {

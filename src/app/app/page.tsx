@@ -1,11 +1,11 @@
 import { DashboardView } from "@/components/dashboard-view";
 import { OnboardingState } from "@/components/onboarding-state";
-import { backendFetch } from "@/lib/api";
+import { backendFetch, currentAccount } from "@/lib/api";
 import {
   isAccountNotReadyProblem,
   isBackendError,
 } from "@/lib/backend-failure";
-import type { Account, PageResponse, Project } from "@/lib/api-types";
+import type { PageResponse, Project } from "@/lib/api-types";
 
 export default async function DashboardPage() {
   const result = await loadDashboard();
@@ -34,7 +34,7 @@ async function loadDashboard() {
   try {
     const [account, projectsResponse, applications, invitations] =
       await Promise.all([
-        backendFetch<Account>("/api/v1/me", { authenticated: true }),
+        currentAccount(),
         backendFetch<PageResponse<Project>>("/api/v1/me/projects", {
           authenticated: true,
         }).catch(() => ({

@@ -28,4 +28,23 @@ describe("backendUnavailableProblem", () => {
     expect(isAccountNotReadyProblem(problem)).toBe(true);
     expect(isBackendError({ problem })).toBe(true);
   });
+
+  it("does not turn unrelated auth or missing-resource errors into onboarding", () => {
+    expect(
+      isAccountNotReadyProblem({
+        title: "Autenticação necessária",
+        status: 401,
+        detail: "Entre para continuar.",
+        code: "authentication_required",
+      }),
+    ).toBe(false);
+    expect(
+      isAccountNotReadyProblem({
+        title: "Não encontrado",
+        status: 404,
+        detail: "O recurso não existe.",
+        code: "resource_not_found",
+      }),
+    ).toBe(false);
+  });
 });
