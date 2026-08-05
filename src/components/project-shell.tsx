@@ -7,6 +7,7 @@ import type { Project } from "@/lib/api-types";
 import { emptyCapabilities } from "@/lib/capabilities";
 import { projectNavigation } from "@/features/projects/project-navigation";
 import { projectStatusLabel } from "@/lib/labels";
+import { progressPercent } from "@/lib/progress";
 
 export function ProjectShell({
   project,
@@ -21,6 +22,7 @@ export function ProjectShell({
     project.viewerCapabilities ?? emptyCapabilities,
     pathname,
   );
+  const progress = progressPercent(project.completedTasks, project.totalTasks);
   return (
     <div>
       <header className="project-header">
@@ -61,11 +63,18 @@ export function ProjectShell({
               {project.completedTasks} de {project.totalTasks} tarefas
               concluídas
             </p>
-            <div className="progress-track progress-track-wide">
+            <div
+              className="progress-track progress-track-wide"
+              role="progressbar"
+              aria-label={`Progresso: ${progress}% concluído`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
               <div
                 className="progress-value"
                 style={{
-                  width: `${project.totalTasks ? Math.round((project.completedTasks / project.totalTasks) * 100) : 0}%`,
+                  width: `${progress}%`,
                 }}
               />
             </div>

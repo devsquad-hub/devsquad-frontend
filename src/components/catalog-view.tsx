@@ -5,6 +5,7 @@ import { CodeIcon, PeopleIcon, ProjectIcon } from "@primer/octicons-react";
 import Link from "next/link";
 import type { Hub, Project } from "@/lib/api-types";
 import { projectStatusLabel } from "@/lib/labels";
+import { progressPercent } from "@/lib/progress";
 
 type Props = {
   hubs: Hub[];
@@ -128,12 +129,10 @@ export function CatalogView({
                 </div>
                 <div className="project-list">
                   {hubProjects.map((project) => {
-                    const progress =
-                      project.totalTasks === 0
-                        ? 0
-                        : Math.round(
-                            (project.completedTasks / project.totalTasks) * 100,
-                          );
+                    const progress = progressPercent(
+                      project.completedTasks,
+                      project.totalTasks,
+                    );
                     return (
                       <article className="project-row" key={project.id}>
                         <div className="section-header">
@@ -167,7 +166,11 @@ export function CatalogView({
                           ))}
                           <div
                             className="progress-track"
-                            aria-label={`${progress}% concluído`}
+                            role="progressbar"
+                            aria-label={`Progresso: ${progress}% concluído`}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={progress}
                           >
                             <div
                               className="progress-value"

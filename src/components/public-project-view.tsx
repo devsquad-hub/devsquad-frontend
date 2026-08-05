@@ -13,6 +13,7 @@ import { LoadError } from "@/components/load-error";
 import type { Hub, Project, RecruitmentPosition } from "@/lib/api-types";
 import { projectStatusLabel, roleLabel } from "@/lib/labels";
 import { groupProjectMembers } from "@/features/projects/project-hierarchy";
+import { progressPercent } from "@/lib/progress";
 
 export function PublicProjectView({
   hub,
@@ -25,9 +26,7 @@ export function PublicProjectView({
   positions: RecruitmentPosition[];
   positionsUnavailable?: boolean;
 }) {
-  const progress = project.totalTasks
-    ? Math.round((project.completedTasks / project.totalTasks) * 100)
-    : 0;
+  const progress = progressPercent(project.completedTasks, project.totalTasks);
   const memberGroups = groupProjectMembers(project.members);
 
   return (
@@ -210,7 +209,14 @@ export function PublicProjectView({
         <aside className="project-aside">
           <section className="aside-section">
             <h2>Progresso</h2>
-            <div className="progress-track progress-track-wide">
+            <div
+              className="progress-track progress-track-wide"
+              role="progressbar"
+              aria-label={`Progresso: ${progress}% concluído`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
               <div
                 className="progress-value"
                 style={{ width: `${progress}%` }}
