@@ -42,6 +42,10 @@ test("opens a public project with grouped team and progressive recruitment", asy
   await expect(
     page.getByRole("heading", { name: "Posições abertas" }),
   ).toBeVisible();
+  await expect(page.locator("nav.breadcrumb a").first()).toHaveAttribute(
+    "href",
+    "/#projetos",
+  );
   const disclosures = page.locator("details.application-disclosure");
   for (let index = 0; index < (await disclosures.count()); index += 1) {
     await expect(disclosures.nth(index)).not.toHaveAttribute("open");

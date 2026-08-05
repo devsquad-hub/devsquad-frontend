@@ -34,7 +34,7 @@ export function PublicProjectView({
       <header className="project-header">
         <div className="page-width project-title-row">
           <nav className="breadcrumb" aria-label="Caminho do projeto">
-            <Link href={`/hubs/${hub.slug}`}>{hub.name}</Link>
+            <Link href="/#projetos">{hub.name}</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">{project.name}</span>
           </nav>
