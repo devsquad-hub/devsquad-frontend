@@ -31,7 +31,7 @@ export function CatalogView({
   return (
     <main id="main-content" className="page-main">
       <section className="catalog-hero">
-        <div className="page-width catalog-hero-inner">
+        <div className="page-width catalog-hero-inner" data-reveal>
           <div>
             <h1 className="catalog-title">
               Ideias ganham equipe. Equipes entregam projetos.
@@ -74,7 +74,7 @@ export function CatalogView({
         </div>
       </section>
 
-      <section className="page-width section" id="projetos">
+      <section className="page-width section" id="projetos" data-reveal>
         <div className="section-header">
           <div>
             <h2 className="section-title">Projetos da comunidade</h2>
@@ -113,7 +113,7 @@ export function CatalogView({
         ) : (
           <div className="project-groups">
             {groupedProjects.map(({ hub, projects: hubProjects }) => (
-              <section className="project-group" key={hub.id}>
+              <section className="project-group" key={hub.id} data-reveal>
                 <div className="section-header project-group-heading">
                   <div>
                     <h3>{hub.name}</h3>
@@ -128,13 +128,17 @@ export function CatalogView({
                   </span>
                 </div>
                 <div className="project-list">
-                  {hubProjects.map((project) => {
+                  {hubProjects.map((project, projectIndex) => {
                     const progress = progressPercent(
                       project.completedTasks,
                       project.totalTasks,
                     );
                     return (
-                      <article className="project-row" key={project.id}>
+                      <article
+                        className={`project-row reveal-delay-${projectIndex % 4}`}
+                        key={project.id}
+                        data-reveal
+                      >
                         <div className="section-header">
                           <div>
                             <Link

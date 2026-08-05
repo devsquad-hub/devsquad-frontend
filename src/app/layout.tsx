@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   },
   description:
     "Projetos construídos em comunidade, do primeiro rascunho até a entrega.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -1,9 +1,16 @@
-import { SignUp } from "@clerk/nextjs";
+import { Suspense } from "react";
+import { AuthForm } from "@/components/auth-form";
 
 export default function SignUpPage() {
   return (
     <main id="main-content" className="auth-page">
-      <SignUp />
+      <Suspense fallback={<AuthLoading />}>
+        <AuthForm mode="sign-up" />
+      </Suspense>
     </main>
   );
+}
+
+function AuthLoading() {
+  return <p className="muted auth-loading-page">Carregando autenticação…</p>;
 }

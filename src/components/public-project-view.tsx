@@ -1,7 +1,6 @@
 "use client";
 
-import { Show, SignInButton } from "@clerk/nextjs";
-import { Avatar, Button, Label, LinkButton } from "@primer/react";
+import { Avatar, Label, LinkButton } from "@primer/react";
 import {
   BriefcaseIcon,
   MarkGithubIcon,
@@ -9,6 +8,7 @@ import {
 } from "@primer/octicons-react";
 import Link from "next/link";
 import { ApplicationForm } from "@/components/application-form";
+import { AuthGate } from "@/components/auth-controls";
 import { LoadError } from "@/components/load-error";
 import type { Hub, Project, RecruitmentPosition } from "@/lib/api-types";
 import { projectStatusLabel, roleLabel } from "@/lib/labels";
@@ -31,7 +31,7 @@ export function PublicProjectView({
 
   return (
     <main id="main-content" className="page-main">
-      <header className="project-header">
+      <header className="project-header" data-reveal>
         <div className="page-width project-title-row">
           <nav className="breadcrumb" aria-label="Caminho do projeto">
             <Link href="/#projetos">{hub.name}</Link>
@@ -60,7 +60,7 @@ export function PublicProjectView({
 
       <div className="page-width project-body">
         <div className="project-main-content">
-          <section className="project-section" id="overview">
+          <section className="project-section" id="overview" data-reveal>
             <div className="section-heading-block">
               <p className="eyebrow">Visão geral</p>
               <h2 className="section-title">Sobre o projeto</h2>
@@ -71,7 +71,7 @@ export function PublicProjectView({
             </p>
           </section>
 
-          <section className="project-section" id="team">
+          <section className="project-section" id="team" data-reveal>
             <div className="section-heading-block">
               <p className="eyebrow">Pessoas</p>
               <div className="section-heading-line">
@@ -91,7 +91,11 @@ export function PublicProjectView({
             ) : (
               <div className="member-groups">
                 {memberGroups.map((group) => (
-                  <section className="member-group" key={group.role}>
+                  <section
+                    className="member-group"
+                    key={group.role}
+                    data-reveal
+                  >
                     <div className="member-group-heading">
                       <h3>{roleLabel(group.role)}</h3>
                       <span className="muted">
@@ -134,7 +138,7 @@ export function PublicProjectView({
             )}
           </section>
 
-          <section className="project-section" id="recruitment">
+          <section className="project-section" id="recruitment" data-reveal>
             <div className="section-heading-block">
               <p className="eyebrow">Contribua</p>
               <div className="section-heading-line">
@@ -158,8 +162,12 @@ export function PublicProjectView({
               </div>
             ) : (
               <div className="position-list">
-                {positions.map((position) => (
-                  <article className="position-card" key={position.id}>
+                {positions.map((position, positionIndex) => (
+                  <article
+                    className={`position-card reveal-delay-${positionIndex % 4}`}
+                    key={position.id}
+                    data-reveal
+                  >
                     <div className="position-card-heading">
                       <div>
                         <h3>{position.title}</h3>
@@ -184,19 +192,14 @@ export function PublicProjectView({
                     <details className="application-disclosure">
                       <summary>Quero me candidatar</summary>
                       <div className="application-panel">
-                        <Show when="signed-in">
+                        <AuthGate
+                          redirectUrl={`/hubs/${hub.slug}/projects/${project.slug}`}
+                        >
                           <ApplicationForm
                             positionId={position.id}
                             questions={position.questions}
                           />
-                        </Show>
-                        <Show when="signed-out">
-                          <SignInButton mode="modal">
-                            <Button variant="primary">
-                              Entrar para se candidatar
-                            </Button>
-                          </SignInButton>
-                        </Show>
+                        </AuthGate>
                       </div>
                     </details>
                   </article>
@@ -206,7 +209,7 @@ export function PublicProjectView({
           </section>
         </div>
 
-        <aside className="project-aside">
+        <aside className="project-aside" data-reveal>
           <section className="aside-section">
             <h2>Progresso</h2>
             <div
