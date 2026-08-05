@@ -1,6 +1,8 @@
 import { HistoryIcon } from "@primer/octicons-react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { backendFetch } from "@/lib/api";
+import { eventLabel } from "@/lib/labels";
 
 type Activity = {
   id: string;
@@ -16,10 +18,23 @@ export default async function ActivityPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const activity = await backendFetch<Activity[]>(
-    `/api/v1/projects/${projectId}/activity`,
-    { authenticated: true },
-  ).catch(() => []);
+  let activity: Activity[];
+  try {
+    activity = await backendFetch<Activity[]>(
+      `/api/v1/projects/${projectId}/activity`,
+      { authenticated: true },
+    );
+  } catch {
+    return (
+      <div>
+        <PageHeading
+          title="Atividade"
+          description="Histórico das mudanças importantes no projeto."
+        />
+        <BackendUnavailable />
+      </div>
+    );
+  }
   return (
     <div>
       <PageHeading
@@ -50,8 +65,4 @@ export default async function ActivityPage({
       )}
     </div>
   );
-}
-
-function eventLabel(event: string): string {
-  return event.toLowerCase().replaceAll("_", " ");
 }

@@ -1,4 +1,5 @@
 import { BellIcon } from "@primer/octicons-react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { MutationButton } from "@/components/resource-actions";
 import { backendFetch } from "@/lib/api";
@@ -12,10 +13,23 @@ type Notification = {
 };
 
 export default async function NotificationsPage() {
-  const notifications = await backendFetch<Notification[]>(
-    "/api/v1/notifications",
-    { authenticated: true },
-  ).catch(() => []);
+  let notifications: Notification[];
+  try {
+    notifications = await backendFetch<Notification[]>(
+      "/api/v1/notifications",
+      { authenticated: true },
+    );
+  } catch {
+    return (
+      <div className="content-width">
+        <PageHeading
+          title="Notificações"
+          description="Atualizações dos seus projetos e processos seletivos."
+        />
+        <BackendUnavailable />
+      </div>
+    );
+  }
   return (
     <div className="content-width">
       <PageHeading

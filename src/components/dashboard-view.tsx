@@ -4,6 +4,7 @@ import { Label, LinkButton } from "@primer/react";
 import { InboxIcon, PeopleIcon, ProjectIcon } from "@primer/octicons-react";
 import Link from "next/link";
 import type { Account, Project } from "@/lib/api-types";
+import { projectStatusLabel } from "@/lib/labels";
 import { PageHeading } from "./page-heading";
 
 export function DashboardView({
@@ -74,7 +75,7 @@ export function DashboardView({
                       project.status === "ACTIVE" ? "success" : "secondary"
                     }
                   >
-                    {project.status}
+                    {projectStatusLabel(project.status)}
                   </Label>
                 </div>
               </article>

@@ -2,9 +2,11 @@
 
 import { Label } from "@primer/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { Project } from "@/lib/api-types";
 import { emptyCapabilities } from "@/lib/capabilities";
 import { projectNavigation } from "@/features/projects/project-navigation";
+import { projectStatusLabel } from "@/lib/labels";
 
 export function ProjectShell({
   project,
@@ -13,9 +15,11 @@ export function ProjectShell({
   project: Project;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const navigation = projectNavigation(
     project.id,
     project.viewerCapabilities ?? emptyCapabilities,
+    pathname,
   );
   return (
     <div>
@@ -23,12 +27,21 @@ export function ProjectShell({
         <div className="page-width project-title-row">
           <div className="project-meta">
             <h1>{project.name}</h1>
-            <Label>{project.status}</Label>
+            <Label
+              variant={project.status === "ACTIVE" ? "success" : "secondary"}
+            >
+              {projectStatusLabel(project.status)}
+            </Label>
             <span className="muted">{project.projectKey}</span>
           </div>
           <nav className="project-tabs" aria-label="Navegação do projeto">
             {navigation.map((item) => (
-              <Link className="project-tab" href={item.href} key={item.href}>
+              <Link
+                className={`project-tab${item.active ? " is-active" : ""}`}
+                href={item.href}
+                aria-current={item.active ? "page" : undefined}
+                key={item.href}
+              >
                 {item.label}
               </Link>
             ))}
@@ -48,7 +61,7 @@ export function ProjectShell({
               {project.completedTasks} de {project.totalTasks} tarefas
               concluídas
             </p>
-            <div className="progress-track" style={{ width: "100%" }}>
+            <div className="progress-track progress-track-wide">
               <div
                 className="progress-value"
                 style={{

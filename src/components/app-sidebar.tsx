@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BellIcon,
   CommentDiscussionIcon,
@@ -7,6 +9,7 @@ import {
   PersonIcon,
 } from "@primer/octicons-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navigation = [
   { href: "/app", label: "Visão geral", icon: HomeIcon },
@@ -18,15 +21,26 @@ const navigation = [
 ];
 
 export function AppSidebar() {
+  const pathname = usePathname();
   return (
     <aside className="app-sidebar" aria-label="Navegação do painel">
       <nav>
-        {navigation.map(({ href, label, icon: Icon }) => (
-          <Link className="nav-link" href={href} key={href}>
-            <Icon aria-hidden="true" />
-            <span>{label}</span>
-          </Link>
-        ))}
+        {navigation.map(({ href, label, icon: Icon }) => {
+          const active =
+            pathname === href ||
+            (href !== "/app" && pathname.startsWith(`${href}/`));
+          return (
+            <Link
+              className={`nav-link${active ? " is-active" : ""}`}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              key={href}
+            >
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

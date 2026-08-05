@@ -1,10 +1,12 @@
 import { Label } from "@primer/react";
 import { BriefcaseIcon } from "@primer/octicons-react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { RecruitmentSetupForm } from "@/components/recruitment-setup-form";
 import { DecisionForm, MutationButton } from "@/components/resource-actions";
 import { backendFetch } from "@/lib/api";
 import type { Project, RecruitmentPosition } from "@/lib/api-types";
+import { applicationStatusLabel } from "@/lib/labels";
 
 type ProjectApplication = {
   id: string;
@@ -20,14 +22,28 @@ export default async function RecruitmentPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [positions, project] = await Promise.all([
-    backendFetch<RecruitmentPosition[]>(
-      `/api/v1/public/projects/${projectId}/recruitment-positions`,
-    ).catch(() => []),
-    backendFetch<Project>(`/api/v1/projects/${projectId}`, {
-      authenticated: true,
-    }),
-  ]);
+  let positions: RecruitmentPosition[];
+  let project: Project;
+  try {
+    [positions, project] = await Promise.all([
+      backendFetch<RecruitmentPosition[]>(
+        `/api/v1/public/projects/${projectId}/recruitment-positions`,
+      ),
+      backendFetch<Project>(`/api/v1/projects/${projectId}`, {
+        authenticated: true,
+      }),
+    ]);
+  } catch {
+    return (
+      <div>
+        <PageHeading
+          title="Recrutamento"
+          description="Posições abertas e candidaturas do projeto."
+        />
+        <BackendUnavailable />
+      </div>
+    );
+  }
   const applications = project.viewerCapabilities?.manageRecruitment
     ? await backendFetch<ProjectApplication[]>(
         `/api/v1/projects/${projectId}/applications`,
@@ -88,7 +104,7 @@ export default async function RecruitmentPage({
                 <article className="list-row" key={application.id}>
                   <div className="section-header">
                     <strong>{application.applicantName}</strong>
-                    <Label>{application.status}</Label>
+                    <Label>{applicationStatusLabel(application.status)}</Label>
                   </div>
                   <p className="muted">{application.positionTitle}</p>
                   <pre className="application-answers">

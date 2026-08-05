@@ -1,10 +1,12 @@
 import { PeopleIcon } from "@primer/octicons-react";
 import { Avatar, Label } from "@primer/react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { HubRoleForm } from "@/components/hub-role-form";
 import { ProjectAdminForm } from "@/components/project-admin-form";
 import { backendFetch } from "@/lib/api";
 import type { HubMember, HubMembership, Project } from "@/lib/api-types";
+import { roleLabel } from "@/lib/labels";
 
 export default async function HubMembersPage({
   params,
@@ -12,13 +14,28 @@ export default async function HubMembersPage({
   params: Promise<{ hubId: string }>;
 }) {
   const { hubId } = await params;
-  const [members, hubs, projects] = await Promise.all([
-    backendFetch<HubMember[]>(`/api/v1/hubs/${hubId}/members`, {
-      authenticated: true,
-    }).catch(() => []),
-    backendFetch<HubMembership[]>("/api/v1/hubs", { authenticated: true }),
-    backendFetch<Project[]>(`/api/v1/public/hubs/${hubId}/projects`),
-  ]);
+  let members: HubMember[];
+  let hubs: HubMembership[];
+  let projects: Project[];
+  try {
+    [members, hubs, projects] = await Promise.all([
+      backendFetch<HubMember[]>(`/api/v1/hubs/${hubId}/members`, {
+        authenticated: true,
+      }),
+      backendFetch<HubMembership[]>("/api/v1/hubs", { authenticated: true }),
+      backendFetch<Project[]>(`/api/v1/public/hubs/${hubId}/projects`),
+    ]);
+  } catch {
+    return (
+      <div className="content-width">
+        <PageHeading
+          title="Membros do hub"
+          description="Papéis e participantes ativos na comunidade."
+        />
+        <BackendUnavailable />
+      </div>
+    );
+  }
   const membership = hubs.find((hub) => hub.hubId === hubId);
   const isMaster = membership?.role === "MASTER";
   const canAssignProjectAdmin = isMaster || membership?.role === "ADMIN";
@@ -44,7 +61,7 @@ export default async function HubMembersPage({
                   <strong>{member.displayName}</strong>
                   {member.email && <div className="muted">{member.email}</div>}
                 </div>
-                <Label>{member.role}</Label>
+                <Label>{roleLabel(member.role)}</Label>
               </div>
               {isMaster && member.role !== "MASTER" && (
                 <HubRoleForm

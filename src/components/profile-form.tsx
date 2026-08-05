@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Flash } from "@primer/react";
 import type { Account } from "@/lib/api-types";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function ProfileForm({ account }: { account: Account }) {
   const [message, setMessage] = useState<string>();
@@ -16,31 +17,35 @@ export function ProfileForm({ account }: { account: Account }) {
     setMessage(undefined);
     setError(undefined);
     const data = new FormData(event.currentTarget);
-    const response = await fetch("/api/backend/v1/me", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        displayName: data.get("displayName"),
-        bio: data.get("bio"),
-        skills: String(data.get("skills") ?? "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        githubUrl: nullable(data.get("githubUrl")),
-        linkedinUrl: nullable(data.get("linkedinUrl")),
-        portfolioUrl: nullable(data.get("portfolioUrl")),
-        availabilityHours: Number(data.get("availabilityHours")) || null,
-      }),
-    });
-    setSaving(false);
-
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
-      );
-      return;
+    try {
+      const response = await requestMutation("/api/backend/v1/me", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          displayName: data.get("displayName"),
+          bio: data.get("bio"),
+          skills: String(data.get("skills") ?? "")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          githubUrl: nullable(data.get("githubUrl")),
+          linkedinUrl: nullable(data.get("linkedinUrl")),
+          portfolioUrl: nullable(data.get("portfolioUrl")),
+          availabilityHours: Number(data.get("availabilityHours")) || null,
+        }),
+      });
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      setMessage("Perfil atualizado.");
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    setMessage("Perfil atualizado.");
   }
 
   return (

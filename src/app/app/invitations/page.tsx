@@ -5,6 +5,7 @@ import { PageHeading } from "@/components/page-heading";
 import { MutationButton } from "@/components/resource-actions";
 import { backendFetch } from "@/lib/api";
 import type { PageResponse } from "@/lib/api-types";
+import { invitationStatusLabel } from "@/lib/labels";
 
 type Invitation = {
   id: string;
@@ -41,7 +42,7 @@ export default async function InvitationsPage() {
             <article className="list-row" key={item.id}>
               <div className="section-header">
                 <strong>{item.projectName}</strong>
-                <Label>{item.status}</Label>
+                <Label>{invitationStatusLabel(item.status)}</Label>
               </div>
               <span className="muted">{item.functionalRole}</span>
               {item.status === "PENDING" && (

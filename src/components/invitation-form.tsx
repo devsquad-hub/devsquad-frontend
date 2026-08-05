@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function InvitationForm({
   projectId,
@@ -21,28 +22,33 @@ export function InvitationForm({
     setSaving(true);
     setError(undefined);
     const form = new FormData(event.currentTarget);
-    const response = await fetch(
-      `/api/backend/v1/projects/${projectId}/invitations`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          accountId: form.get("accountId"),
-          positionId: null,
-          functionalRole:
-            String(form.get("functionalRole") ?? "").trim() || null,
-        }),
-      },
-    );
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/projects/${projectId}/invitations`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            accountId: form.get("accountId"),
+            positionId: null,
+            functionalRole:
+              String(form.get("functionalRole") ?? "").trim() || null,
+          }),
+        },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      event.currentTarget.reset();
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    event.currentTarget.reset();
-    router.refresh();
   }
 
   if (candidates.length === 0)

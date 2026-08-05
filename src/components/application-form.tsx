@@ -5,6 +5,7 @@ import { Button, Flash } from "@primer/react";
 import { applicationAnswers } from "@/features/applications/application-answers";
 import type { RecruitmentQuestion } from "@/lib/api-types";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 const defaultQuestion: RecruitmentQuestion = {
   key: "motivation",
@@ -32,22 +33,27 @@ export function ApplicationForm({
     const form = new FormData(event.currentTarget);
     const visibleQuestions =
       questions.length > 0 ? questions : [defaultQuestion];
-    const response = await fetch(
-      `/api/backend/v1/recruitment-positions/${positionId}/applications`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(applicationAnswers(form, visibleQuestions)),
-      },
-    );
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/recruitment-positions/${positionId}/applications`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(applicationAnswers(form, visibleQuestions)),
+        },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      setSent(true);
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    setSent(true);
   }
 
   if (sent)

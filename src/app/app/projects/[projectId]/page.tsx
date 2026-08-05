@@ -1,4 +1,5 @@
 import { PageHeading } from "@/components/page-heading";
+import { LoadError } from "@/components/load-error";
 import { backendFetch } from "@/lib/api";
 import type { Project } from "@/lib/api-types";
 
@@ -8,9 +9,14 @@ export default async function ProjectOverviewPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const project = await backendFetch<Project>(`/api/v1/projects/${projectId}`, {
-    authenticated: true,
-  });
+  let project: Project;
+  try {
+    project = await backendFetch<Project>(`/api/v1/projects/${projectId}`, {
+      authenticated: true,
+    });
+  } catch {
+    return <LoadError retryHref={`/app/projects/${projectId}`} />;
+  }
   return (
     <div>
       <PageHeading
@@ -20,7 +26,7 @@ export default async function ProjectOverviewPage({
       <div className="list-panel">
         <div className="list-row">
           <h2 className="section-title">Descrição</h2>
-          <p className="section-description" style={{ whiteSpace: "pre-wrap" }}>
+          <p className="section-description project-description">
             {project.description ||
               "Adicione uma descrição detalhada nas configurações."}
           </p>

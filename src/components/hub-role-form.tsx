@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { actionRequest } from "@/features/actions/action-request";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function HubRoleForm({
   hubId,
@@ -24,18 +25,23 @@ export function HubRoleForm({
     setSaving(true);
     setError(undefined);
     const role = String(new FormData(event.currentTarget).get("role"));
-    const response = await fetch(
-      `/api/backend/v1/hubs/${hubId}/members/${accountId}`,
-      actionRequest({ role }, "PUT"),
-    );
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/hubs/${hubId}/members/${accountId}`,
+        actionRequest({ role }, "PUT"),
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    router.refresh();
   }
 
   return (

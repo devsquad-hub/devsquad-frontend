@@ -4,6 +4,7 @@ import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { backendFetch } from "@/lib/api";
 import type { PageResponse } from "@/lib/api-types";
+import { applicationStatusLabel } from "@/lib/labels";
 
 type Application = {
   id: string;
@@ -41,7 +42,7 @@ export default async function ApplicationsPage() {
             <article className="list-row" key={item.id}>
               <div className="section-header">
                 <strong>{item.positionTitle}</strong>
-                <Label>{item.status}</Label>
+                <Label>{applicationStatusLabel(item.status)}</Label>
               </div>
               <span className="muted">{item.projectName}</span>
             </article>

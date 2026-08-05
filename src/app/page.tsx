@@ -1,6 +1,6 @@
-import type { Hub, PageResponse, Project } from "@/lib/api-types";
 import { backendFetch } from "@/lib/api";
 import { CatalogView } from "@/components/catalog-view";
+import { loadCatalog } from "@/features/catalog/load-catalog";
 import { searchProjects } from "@/features/catalog/search-projects";
 
 export const dynamic = "force-dynamic";
@@ -11,30 +11,16 @@ export default async function Home({
   searchParams: Promise<{ q?: string }>;
 }) {
   const query = (await searchParams).q?.trim() ?? "";
-  let hubs: Hub[] = [];
-  const projects: Project[] = [];
-  let unavailable = false;
-
-  try {
-    const response = await backendFetch<PageResponse<Hub>>(
-      "/api/v1/public/hubs",
-    );
-    hubs = response.items;
-    const projectGroups = await Promise.all(
-      hubs.map((hub) =>
-        backendFetch<Project[]>(`/api/v1/public/hubs/${hub.id}/projects`),
-      ),
-    );
-    projects.push(...projectGroups.flat());
-  } catch {
-    unavailable = true;
-  }
+  const catalog = await loadCatalog((path) =>
+    backendFetch(path as `/api/v1/${string}`),
+  );
 
   return (
     <CatalogView
-      hubs={hubs}
-      projects={searchProjects(projects, query)}
-      unavailable={unavailable}
+      hubs={catalog.hubs}
+      projects={searchProjects(catalog.projects, query)}
+      failedHubIds={catalog.failedHubIds}
+      unavailable={catalog.unavailable}
       query={query}
     />
   );

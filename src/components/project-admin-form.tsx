@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { actionRequest } from "@/features/actions/action-request";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function ProjectAdminForm({
   accountId,
@@ -24,18 +25,23 @@ export function ProjectAdminForm({
     const projectId = String(
       new FormData(event.currentTarget).get("projectId"),
     );
-    const response = await fetch(
-      `/api/backend/v1/projects/${projectId}/admins/${accountId}`,
-      actionRequest(undefined, "PUT"),
-    );
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/projects/${projectId}/admins/${accountId}`,
+        actionRequest(undefined, "PUT"),
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    router.refresh();
   }
 
   if (projects.length === 0) return null;

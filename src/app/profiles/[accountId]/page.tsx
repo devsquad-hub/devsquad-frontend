@@ -1,7 +1,9 @@
 import { Avatar, LinkButton } from "@primer/react";
 import { MarkGithubIcon } from "@primer/octicons-react";
 import { notFound } from "next/navigation";
+import { LoadError } from "@/components/load-error";
 import { backendFetch } from "@/lib/api";
+import { isBackendError } from "@/lib/backend-failure";
 import type { Account } from "@/lib/api-types";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +14,21 @@ export default async function PublicProfilePage({
   params: Promise<{ accountId: string }>;
 }) {
   const { accountId } = await params;
-  const account = await backendFetch<Account>(
-    `/api/v1/public/profiles/${accountId}`,
-  ).catch(() => null);
-  if (!account) notFound();
+  let account: Account;
+  try {
+    account = await backendFetch<Account>(
+      `/api/v1/public/profiles/${accountId}`,
+    );
+  } catch (error) {
+    if (isBackendError(error) && error.problem.status === 404) notFound();
+    return (
+      <main id="main-content" className="page-main">
+        <div className="page-width">
+          <LoadError retryHref={`/profiles/${accountId}`} />
+        </div>
+      </main>
+    );
+  }
   return (
     <main id="main-content" className="page-main">
       <div className="page-width project-body">
@@ -27,15 +40,12 @@ export default async function PublicProfilePage({
               <p className="muted">Perfil público</p>
             </div>
           </div>
-          <p
-            className="catalog-copy"
-            style={{ fontSize: 16, whiteSpace: "pre-wrap" }}
-          >
+          <p className="catalog-copy profile-bio">
             {account.bio || "Este membro ainda não adicionou uma biografia."}
           </p>
           <section className="section">
             <h2 className="section-title">Habilidades</h2>
-            <div className="tag-list" style={{ marginTop: 16 }}>
+            <div className="tag-list profile-skills">
               {account.skills.map((skill) => (
                 <span className="tag" key={skill}>
                   {skill}

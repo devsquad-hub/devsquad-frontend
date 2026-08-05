@@ -1,9 +1,11 @@
 import { Avatar, Label } from "@primer/react";
 import { PeopleIcon } from "@primer/octicons-react";
+import { LoadError } from "@/components/load-error";
 import { PageHeading } from "@/components/page-heading";
 import { InvitationForm } from "@/components/invitation-form";
 import { backendFetch } from "@/lib/api";
 import type { HubMember, Project } from "@/lib/api-types";
+import { roleLabel } from "@/lib/labels";
 
 export default async function ProjectMembersPage({
   params,
@@ -11,14 +13,25 @@ export default async function ProjectMembersPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const project = await backendFetch<Project>(`/api/v1/projects/${projectId}`, {
-    authenticated: true,
-  });
-  const hubMembers = project.viewerCapabilities?.manageRecruitment
-    ? await backendFetch<HubMember[]>(`/api/v1/hubs/${project.hubId}/members`, {
-        authenticated: true,
-      })
-    : [];
+  let project: Project;
+  try {
+    project = await backendFetch<Project>(`/api/v1/projects/${projectId}`, {
+      authenticated: true,
+    });
+  } catch {
+    return <LoadError retryHref={`/app/projects/${projectId}/members`} />;
+  }
+  let hubMembers: HubMember[] = [];
+  if (project.viewerCapabilities?.manageRecruitment) {
+    try {
+      hubMembers = await backendFetch<HubMember[]>(
+        `/api/v1/hubs/${project.hubId}/members`,
+        { authenticated: true },
+      );
+    } catch {
+      return <LoadError retryHref={`/app/projects/${projectId}/members`} />;
+    }
+  }
   const projectMemberIds = new Set(
     project.members.map((member) => member.accountId),
   );
@@ -52,7 +65,7 @@ export default async function ProjectMembersPage({
                     {member.functionalRole || "Sem função definida"}
                   </div>
                 </div>
-                <Label>{member.role}</Label>
+                <Label>{roleLabel(member.role)}</Label>
               </div>
             </article>
           ))}

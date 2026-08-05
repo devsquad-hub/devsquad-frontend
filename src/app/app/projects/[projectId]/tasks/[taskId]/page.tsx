@@ -1,4 +1,5 @@
 import { PageHeading } from "@/components/page-heading";
+import { LoadError } from "@/components/load-error";
 import { TaskDetail } from "@/components/task-detail";
 import type { TaskAttachment } from "@/components/task-attachments";
 import { backendFetch } from "@/lib/api";
@@ -10,18 +11,28 @@ export default async function TaskPage({
   params: Promise<{ projectId: string; taskId: string }>;
 }) {
   const { projectId, taskId } = await params;
-  const [task, board, comments, attachments] = await Promise.all([
-    backendFetch<Task>(`/api/v1/tasks/${taskId}`, { authenticated: true }),
-    backendFetch<Board>(`/api/v1/projects/${projectId}/board`, {
-      authenticated: true,
-    }),
-    backendFetch<Comment[]>(`/api/v1/tasks/${taskId}/comments`, {
-      authenticated: true,
-    }),
-    backendFetch<TaskAttachment[]>(`/api/v1/attachments/tasks/${taskId}`, {
-      authenticated: true,
-    }),
-  ]);
+  let task: Task;
+  let board: Board;
+  let comments: Comment[];
+  let attachments: TaskAttachment[];
+  try {
+    [task, board, comments, attachments] = await Promise.all([
+      backendFetch<Task>(`/api/v1/tasks/${taskId}`, { authenticated: true }),
+      backendFetch<Board>(`/api/v1/projects/${projectId}/board`, {
+        authenticated: true,
+      }),
+      backendFetch<Comment[]>(`/api/v1/tasks/${taskId}/comments`, {
+        authenticated: true,
+      }),
+      backendFetch<TaskAttachment[]>(`/api/v1/attachments/tasks/${taskId}`, {
+        authenticated: true,
+      }),
+    ]);
+  } catch {
+    return (
+      <LoadError retryHref={`/app/projects/${projectId}/tasks/${taskId}`} />
+    );
+  }
   return (
     <div>
       <PageHeading

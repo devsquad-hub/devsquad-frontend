@@ -4,38 +4,50 @@ import { useState } from "react";
 import { Button, Flash } from "@primer/react";
 import type { Project } from "@/lib/api-types";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function ProjectSettingsForm({ project }: { project: Project }) {
   const [message, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(undefined);
     setError(undefined);
+    setSaving(true);
     const form = new FormData(event.currentTarget);
-    const response = await fetch(`/api/backend/v1/projects/${project.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: String(form.get("name") ?? "").trim(),
-        summary: String(form.get("summary") ?? "").trim(),
-        description: String(form.get("description") ?? "").trim(),
-        repositoryUrl: optional(form, "repositoryUrl"),
-        communicationUrl: optional(form, "communicationUrl"),
-        tags: String(form.get("tags") ?? "")
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-      }),
-    });
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/projects/${project.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: String(form.get("name") ?? "").trim(),
+            summary: String(form.get("summary") ?? "").trim(),
+            description: String(form.get("description") ?? "").trim(),
+            repositoryUrl: optional(form, "repositoryUrl"),
+            communicationUrl: optional(form, "communicationUrl"),
+            tags: String(form.get("tags") ?? "")
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+          }),
+        },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      setMessage("Projeto atualizado.");
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    setMessage("Projeto atualizado.");
   }
 
   return (
@@ -75,8 +87,8 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
         defaultValue={project.tags.join(", ")}
       />
       <div>
-        <Button type="submit" variant="primary">
-          Salvar projeto
+        <Button type="submit" variant="primary" disabled={saving}>
+          {saving ? "Salvando..." : "Salvar projeto"}
         </Button>
       </div>
     </form>

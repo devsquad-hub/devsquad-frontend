@@ -24,6 +24,26 @@ describe("projectNavigation", () => {
     expect(navigation.at(-1)).toEqual({
       label: "Configurações",
       href: "/app/projects/project-1/settings",
+      active: false,
+    });
+  });
+
+  it("marks the current route as active", () => {
+    const navigation = projectNavigation(
+      "project-1",
+      { ...emptyCapabilities, manageProject: true },
+      "/app/projects/project-1/recruitment",
+    );
+
+    expect(
+      navigation.find((item) => item.label === "Recrutamento"),
+    ).toMatchObject({
+      active: true,
+    });
+    expect(
+      navigation.find((item) => item.label === "Visão geral"),
+    ).toMatchObject({
+      active: false,
     });
   });
 });

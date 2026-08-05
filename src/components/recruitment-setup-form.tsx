@@ -4,24 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { parseProblem } from "@/lib/problem";
+import { requestMutation } from "@/lib/mutation";
 
 export function RecruitmentSetupForm({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
-
-  async function post(path: string, body?: unknown) {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: body ? { "content-type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok)
-      throw new Error(
-        parseProblem(await response.json().catch(() => undefined)).detail,
-      );
-    return response.status === 204 ? undefined : response.json();
-  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,36 +17,46 @@ export function RecruitmentSetupForm({ projectId }: { projectId: string }) {
     setError(undefined);
     const form = new FormData(event.currentTarget);
     try {
-      const round = (await post(
-        `/api/backend/v1/projects/${projectId}/recruitment-rounds`,
+      const response = await requestMutation(
+        `/api/backend/v1/projects/${projectId}/recruitment`,
         {
-          name: String(form.get("roundName")).trim(),
-          description: String(form.get("roundDescription") ?? "").trim(),
-          opensAt: null,
-          closesAt: form.get("closesAt")
-            ? new Date(String(form.get("closesAt"))).toISOString()
-            : null,
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            round: {
+              name: String(form.get("roundName")).trim(),
+              description: String(form.get("roundDescription") ?? "").trim(),
+              opensAt: null,
+              closesAt: form.get("closesAt")
+                ? new Date(String(form.get("closesAt"))).toISOString()
+                : null,
+            },
+            position: {
+              title: String(form.get("title")).trim(),
+              description: String(form.get("description") ?? "").trim(),
+              skills: String(form.get("skills") ?? "")
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean),
+              capacity: Number(form.get("capacity")),
+              questions: [
+                {
+                  key: "motivation",
+                  label: "Por que você quer participar?",
+                  type: "LONG_TEXT",
+                  required: true,
+                  options: [],
+                },
+              ],
+            },
+          }),
         },
-      )) as { id: string };
-      await post(`/api/backend/v1/recruitment-rounds/${round.id}/positions`, {
-        title: String(form.get("title")).trim(),
-        description: String(form.get("description") ?? "").trim(),
-        skills: String(form.get("skills") ?? "")
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
-        capacity: Number(form.get("capacity")),
-        questions: [
-          {
-            key: "motivation",
-            label: "Por que você quer participar?",
-            type: "LONG_TEXT",
-            required: true,
-            options: [],
-          },
-        ],
-      });
-      await post(`/api/backend/v1/recruitment-rounds/${round.id}/open`);
+      );
+      if (!response.ok) {
+        throw new Error(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+      }
       event.currentTarget.reset();
       router.refresh();
     } catch (cause) {

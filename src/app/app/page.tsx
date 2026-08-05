@@ -37,12 +37,7 @@ async function loadDashboard() {
         currentAccount(),
         backendFetch<PageResponse<Project>>("/api/v1/me/projects", {
           authenticated: true,
-        }).catch(() => ({
-          items: [],
-          page: 0,
-          size: 0,
-          totalItems: 0,
-        })),
+        }),
         backendFetch<PageResponse<{ status: string }>>(
           "/api/v1/me/applications",
           {

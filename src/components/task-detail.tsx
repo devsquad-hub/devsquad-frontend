@@ -9,6 +9,8 @@ import {
   TaskAttachments,
   type TaskAttachment,
 } from "@/components/task-attachments";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
+import { priorityLabel } from "@/lib/labels";
 
 export function TaskDetail({
   projectId,
@@ -32,62 +34,76 @@ export function TaskDetail({
     setError(undefined);
     setMessage(undefined);
     const form = new FormData(event.currentTarget);
-    const response = await fetch(`/api/backend/v1/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        expectedVersion: task.version,
-        task: {
-          parentId: task.parentId ?? null,
-          columnId: form.get("columnId"),
-          milestoneId: task.milestoneId ?? null,
-          title: String(form.get("title") ?? "").trim(),
-          description: String(form.get("description") ?? "").trim(),
-          priority: form.get("priority"),
-          startDate: form.get("startDate") || null,
-          dueDate: form.get("dueDate") || null,
-          position: task.position,
-          assigneeIds: task.assignees.map((assignee) => assignee.id),
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/tasks/${task.id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            expectedVersion: task.version,
+            task: {
+              parentId: task.parentId ?? null,
+              columnId: form.get("columnId"),
+              milestoneId: task.milestoneId ?? null,
+              title: String(form.get("title") ?? "").trim(),
+              description: String(form.get("description") ?? "").trim(),
+              priority: form.get("priority"),
+              startDate: form.get("startDate") || null,
+              dueDate: form.get("dueDate") || null,
+              position: task.position,
+              assigneeIds: task.assignees.map((assignee) => assignee.id),
+            },
+          }),
         },
-      }),
-    });
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      setMessage("Tarefa atualizada.");
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
     }
-    setMessage("Tarefa atualizada.");
-    router.refresh();
   }
 
   async function comment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const response = await fetch(`/api/backend/v1/tasks/${task.id}/comments`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ body: String(form.get("body") ?? "").trim() }),
-    });
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/tasks/${task.id}/comments`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ body: String(form.get("body") ?? "").trim() }),
+        },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      event.currentTarget.reset();
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
     }
-    event.currentTarget.reset();
-    router.refresh();
   }
 
   return (
     <div>
       {message && (
-        <Flash variant="success" style={{ marginTop: 16 }}>
+        <Flash variant="success" className="flash-spaced-top">
           {message}
         </Flash>
       )}
       {error && (
-        <Flash variant="danger" style={{ marginTop: 16 }}>
+        <Flash variant="danger" className="flash-spaced-top">
           {error}
         </Flash>
       )}
@@ -127,7 +143,7 @@ export function TaskDetail({
             <select id="priority" name="priority" defaultValue={task.priority}>
               {["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"].map((priority) => (
                 <option value={priority} key={priority}>
-                  {priority}
+                  {priorityLabel(priority)}
                 </option>
               ))}
             </select>
@@ -170,10 +186,7 @@ export function TaskDetail({
                     }).format(new Date(item.createdAt))}
                   </time>
                 </div>
-                <p
-                  className="section-description"
-                  style={{ whiteSpace: "pre-wrap" }}
-                >
+                <p className="section-description task-comment-body">
                   {item.body}
                 </p>
               </article>

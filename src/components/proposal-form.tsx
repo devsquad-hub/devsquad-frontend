@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { proposalPayload } from "@/features/proposals/proposal-payload";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export function ProposalForm({ hubId }: { hubId: string }) {
   const router = useRouter();
@@ -15,21 +16,31 @@ export function ProposalForm({ hubId }: { hubId: string }) {
     event.preventDefault();
     setSaving(true);
     setError(undefined);
-    const response = await fetch(`/api/backend/v1/hubs/${hubId}/proposals`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(proposalPayload(new FormData(event.currentTarget))),
-    });
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/hubs/${hubId}/proposals`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(
+            proposalPayload(new FormData(event.currentTarget)),
+          ),
+        },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      const proposal = (await response.json()) as { id: string };
+      router.push(`/app/proposals?created=${proposal.id}`);
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    const proposal = (await response.json()) as { id: string };
-    router.push(`/app/proposals?created=${proposal.id}`);
-    router.refresh();
   }
 
   return (

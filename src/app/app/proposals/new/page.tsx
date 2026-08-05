@@ -1,13 +1,27 @@
 import { CommentDiscussionIcon } from "@primer/octicons-react";
+import { BackendUnavailable } from "@/components/backend-unavailable";
 import { PageHeading } from "@/components/page-heading";
 import { ProposalForm } from "@/components/proposal-form";
 import { backendFetch } from "@/lib/api";
 import type { HubMembership } from "@/lib/api-types";
 
 export default async function NewProposalPage() {
-  const hubs = await backendFetch<HubMembership[]>("/api/v1/hubs", {
-    authenticated: true,
-  }).catch(() => []);
+  let hubs: HubMembership[];
+  try {
+    hubs = await backendFetch<HubMembership[]>("/api/v1/hubs", {
+      authenticated: true,
+    });
+  } catch {
+    return (
+      <div className="content-width">
+        <PageHeading
+          title="Nova proposta"
+          description="Estruture a ideia para que a comunidade consiga avaliá-la."
+        />
+        <BackendUnavailable />
+      </div>
+    );
+  }
   const hub = hubs[0];
   return (
     <div className="content-width">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { PaperclipIcon } from "@primer/octicons-react";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 export type TaskAttachment = {
   id: string;
@@ -37,7 +38,7 @@ export function TaskAttachments({
     setSaving(true);
     setError(undefined);
     try {
-      const ticketResponse = await fetch(
+      const ticketResponse = await requestMutation(
         "/api/backend/v1/attachments/upload-ticket",
         {
           method: "POST",
@@ -69,7 +70,7 @@ export function TaskAttachments({
       });
       if (!objectResponse.ok)
         throw new Error("O armazenamento recusou o arquivo.");
-      const complete = await fetch(
+      const complete = await requestMutation(
         `/api/backend/v1/attachments/${ticket.attachmentId}/complete`,
         {
           method: "POST",
@@ -80,28 +81,29 @@ export function TaskAttachments({
       event.currentTarget.reset();
       router.refresh();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Não foi possível enviar o arquivo.",
-      );
+      setError(mutationErrorMessage(cause));
     } finally {
       setSaving(false);
     }
   }
 
   async function download(attachmentId: string) {
-    const response = await fetch(
-      `/api/backend/v1/attachments/${attachmentId}/download-ticket`,
-    );
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/attachments/${attachmentId}/download-ticket`,
+        { method: "GET" },
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      const ticket = (await response.json()) as { downloadUrl: string };
+      window.location.assign(ticket.downloadUrl);
+    } catch (cause) {
+      setError(mutationErrorMessage(cause));
     }
-    const ticket = (await response.json()) as { downloadUrl: string };
-    window.location.assign(ticket.downloadUrl);
   }
 
   return (

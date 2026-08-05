@@ -11,6 +11,8 @@ import { Flash, Label } from "@primer/react";
 import { GrabberIcon } from "@primer/octicons-react";
 import type { Board, BoardColumn, Task } from "@/lib/api-types";
 import Link from "next/link";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
+import { priorityLabel } from "@/lib/labels";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [board, setBoard] = useState(initialBoard);
@@ -23,26 +25,34 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       board.columns.find((column) => column.id === columnId)?.tasks.length ?? 0;
     setBoard(moveOnBoard(board, task.id, columnId, position));
     setError(undefined);
-    const response = await fetch(`/api/backend/v1/tasks/${task.id}/move`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        columnId,
-        position,
-        expectedVersion: task.version,
-      }),
-    });
-    if (!response.ok) {
-      setBoard(previous);
-      setError(
-        response.status === 409
-          ? "A tarefa foi alterada por outra pessoa. Atualize o quadro e tente novamente."
-          : "Não foi possível mover a tarefa.",
+    try {
+      const response = await requestMutation(
+        `/api/backend/v1/tasks/${task.id}/move`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            columnId,
+            position,
+            expectedVersion: task.version,
+          }),
+        },
       );
-      return;
+      if (!response.ok) {
+        setBoard(previous);
+        setError(
+          response.status === 409
+            ? "A tarefa foi alterada por outra pessoa. Atualize o quadro e tente novamente."
+            : "Não foi possível mover a tarefa.",
+        );
+        return;
+      }
+      const updated = (await response.json()) as Task;
+      setBoard((current) => replaceTask(current, updated));
+    } catch (error) {
+      setBoard(previous);
+      setError(mutationErrorMessage(error));
     }
-    const updated = (await response.json()) as Task;
-    setBoard((current) => replaceTask(current, updated));
   }
 
   function onDragEnd(event: DragEndEvent) {
@@ -53,7 +63,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   return (
     <div>
       {error && (
-        <Flash variant="danger" style={{ marginBottom: 16 }}>
+        <Flash variant="danger" className="flash-spaced-bottom">
           {error}
         </Flash>
       )}
@@ -159,7 +169,7 @@ function TaskCard({
         </Link>
       </h3>
       <div className="project-meta">
-        <Label>{task.priority}</Label>
+        <Label>{priorityLabel(task.priority)}</Label>
         {task.dueDate && (
           <span className="muted">
             até{" "}
@@ -169,7 +179,7 @@ function TaskCard({
           </span>
         )}
       </div>
-      <div className="field" style={{ marginTop: 12 }}>
+      <div className="field board-task-move">
         <label className="sr-only" htmlFor={`move-${task.id}`}>
           Mover {task.title}
         </label>

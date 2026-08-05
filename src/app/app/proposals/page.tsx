@@ -5,6 +5,7 @@ import { PageHeading } from "@/components/page-heading";
 import { DecisionForm, MutationButton } from "@/components/resource-actions";
 import { backendFetch, currentAccount } from "@/lib/api";
 import type { HubMembership, Proposal } from "@/lib/api-types";
+import { proposalStatusLabel } from "@/lib/labels";
 
 export default async function ProposalsPage() {
   const result = await loadProposals();
@@ -43,7 +44,7 @@ export default async function ProposalsPage() {
                     proposal.status === "APPROVED" ? "success" : "secondary"
                   }
                 >
-                  {proposal.status}
+                  {proposalStatusLabel(proposal.status)}
                 </Label>
               </div>
               <div className="tag-list">

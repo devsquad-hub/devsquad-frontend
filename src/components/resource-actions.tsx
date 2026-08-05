@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Flash } from "@primer/react";
 import { actionRequest } from "@/features/actions/action-request";
 import { parseProblem } from "@/lib/problem";
+import { mutationErrorMessage, requestMutation } from "@/lib/mutation";
 
 type ButtonVariant = "primary" | "danger" | "default";
 
@@ -24,15 +25,20 @@ export function MutationButton({
   async function mutate() {
     setSaving(true);
     setError(undefined);
-    const response = await fetch(endpoint, actionRequest());
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
-      );
-      return;
+    try {
+      const response = await requestMutation(endpoint, actionRequest());
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    router.refresh();
   }
 
   return (
@@ -72,18 +78,23 @@ export function DecisionForm({
     const value = String(
       new FormData(event.currentTarget).get(payloadKey) ?? "",
     ).trim();
-    const response = await fetch(
-      endpoint,
-      actionRequest({ [payloadKey]: value }),
-    );
-    setSaving(false);
-    if (!response.ok) {
-      setError(
-        parseProblem(await response.json().catch(() => undefined)).detail,
+    try {
+      const response = await requestMutation(
+        endpoint,
+        actionRequest({ [payloadKey]: value }),
       );
-      return;
+      if (!response.ok) {
+        setError(
+          parseProblem(await response.json().catch(() => undefined)).detail,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      setError(mutationErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-    router.refresh();
   }
 
   return (

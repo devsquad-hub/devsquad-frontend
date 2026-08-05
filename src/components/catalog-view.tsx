@@ -4,23 +4,29 @@ import { Label, LinkButton } from "@primer/react";
 import { CodeIcon, PeopleIcon, ProjectIcon } from "@primer/octicons-react";
 import Link from "next/link";
 import type { Hub, Project } from "@/lib/api-types";
+import { projectStatusLabel } from "@/lib/labels";
 
 type Props = {
   hubs: Hub[];
   projects: Project[];
+  failedHubIds: string[];
   unavailable: boolean;
   query: string;
 };
 
-const statusLabel: Record<Project["status"], string> = {
-  PLANNING: "Planejamento",
-  RECRUITING: "Recrutando",
-  ACTIVE: "Em andamento",
-  COMPLETED: "Concluído",
-  ARCHIVED: "Arquivado",
-};
-
-export function CatalogView({ hubs, projects, unavailable, query }: Props) {
+export function CatalogView({
+  hubs,
+  projects,
+  failedHubIds,
+  unavailable,
+  query,
+}: Props) {
+  const groupedProjects = hubs
+    .map((hub) => ({
+      hub,
+      projects: projects.filter((project) => project.hubId === hub.id),
+    }))
+    .filter((group) => group.projects.length > 0);
   return (
     <main id="main-content" className="page-main">
       <section className="catalog-hero">
@@ -33,7 +39,7 @@ export function CatalogView({ hubs, projects, unavailable, query }: Props) {
               Uma comunidade para propor, selecionar e construir projetos com
               papéis claros e trabalho visível.
             </p>
-            <div className="project-meta" style={{ marginTop: 24 }}>
+            <div className="project-meta hero-actions">
               <LinkButton href="#projetos" variant="primary">
                 Explorar projetos
               </LinkButton>
@@ -104,71 +110,88 @@ export function CatalogView({ hubs, projects, unavailable, query }: Props) {
             </p>
           </div>
         ) : (
-          <div className="project-list">
-            {projects.map((project) => {
-              const progress =
-                project.totalTasks === 0
-                  ? 0
-                  : Math.round(
-                      (project.completedTasks / project.totalTasks) * 100,
+          <div className="project-groups">
+            {groupedProjects.map(({ hub, projects: hubProjects }) => (
+              <section className="project-group" key={hub.id}>
+                <div className="section-header project-group-heading">
+                  <div>
+                    <h3>{hub.name}</h3>
+                    <p className="section-description">
+                      {hub.description ||
+                        "Comunidade de projetos colaborativos."}
+                    </p>
+                  </div>
+                  <span className="muted">
+                    {hubProjects.length} projeto
+                    {hubProjects.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="project-list">
+                  {hubProjects.map((project) => {
+                    const progress =
+                      project.totalTasks === 0
+                        ? 0
+                        : Math.round(
+                            (project.completedTasks / project.totalTasks) * 100,
+                          );
+                    return (
+                      <article className="project-row" key={project.id}>
+                        <div className="section-header">
+                          <div>
+                            <Link
+                              className="row-title"
+                              href={`/hubs/${hub.slug}/projects/${project.slug}`}
+                            >
+                              {project.name}
+                            </Link>
+                            <p className="section-description">
+                              {project.summary}
+                            </p>
+                          </div>
+                          <Label
+                            variant={
+                              project.status === "ACTIVE"
+                                ? "success"
+                                : "secondary"
+                            }
+                          >
+                            {projectStatusLabel(project.status)}
+                          </Label>
+                        </div>
+                        <div className="project-meta">
+                          <span className="row-meta">{project.projectKey}</span>
+                          {project.tags.map((tag) => (
+                            <span className="tag" key={tag}>
+                              {tag}
+                            </span>
+                          ))}
+                          <div
+                            className="progress-track"
+                            aria-label={`${progress}% concluído`}
+                          >
+                            <div
+                              className="progress-value"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="row-meta">
+                            {project.completedTasks}/{project.totalTasks}{" "}
+                            tarefas
+                          </span>
+                        </div>
+                      </article>
                     );
-              const hub = hubs.find((item) => item.id === project.hubId);
-              return (
-                <article className="project-row" key={project.id}>
-                  <div className="section-header">
-                    <div>
-                      <Link
-                        className="row-title"
-                        href={`/hubs/${hub?.slug ?? project.hubId}/projects/${project.slug}`}
-                      >
-                        {project.name}
-                      </Link>
-                      <p className="section-description">{project.summary}</p>
-                    </div>
-                    <Label
-                      variant={
-                        project.status === "ACTIVE" ? "success" : "secondary"
-                      }
-                    >
-                      {statusLabel[project.status]}
-                    </Label>
-                  </div>
-                  <div className="project-meta">
-                    <span className="row-meta">{project.projectKey}</span>
-                    {project.tags.map((tag) => (
-                      <span className="tag" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                    <div
-                      className="progress-track"
-                      aria-label={`${progress}% concluído`}
-                    >
-                      <div
-                        className="progress-value"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="row-meta">
-                      {project.completedTasks}/{project.totalTasks} tarefas
-                    </span>
-                  </div>
-                </article>
-              );
-            })}
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
 
-        {hubs.length > 0 && (
-          <div className="hub-list">
-            {hubs.map((hub) => (
-              <div className="hub-row" key={hub.id}>
-                <strong>{hub.name}</strong>
-                <span className="muted">
-                  {hub.description || "Comunidade de projetos colaborativos."}
-                </span>
-              </div>
-            ))}
+        {failedHubIds.length > 0 && !unavailable && (
+          <div className="partial-warning" role="status">
+            Alguns hubs não puderam ser carregados. Os projetos disponíveis
+            continuam visíveis.
           </div>
         )}
       </section>
