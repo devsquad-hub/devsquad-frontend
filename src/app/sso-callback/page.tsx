@@ -23,35 +23,17 @@ export default function SsoCallbackPage() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (hasRun.current || !signInState.signIn || !signUpState.signUp) {
+    if (
+      hasRun.current ||
+      !clerk.loaded ||
+      !signInState.signIn ||
+      !signUpState.signUp
+    ) {
       return;
     }
 
     const signIn = signInState.signIn;
     const signUp = signUpState.signUp;
-    const hasOAuthState = Boolean(
-      signIn.id ||
-      signUp.id ||
-      signIn.status === "complete" ||
-      signUp.status === "complete" ||
-      signIn.isTransferable ||
-      signUp.isTransferable ||
-      signIn.existingSession ||
-      signUp.existingSession,
-    );
-
-    if (!hasOAuthState) {
-      const timeout = window.setTimeout(() => {
-        if (!hasRun.current) {
-          hasRun.current = true;
-          setError(
-            "Não encontramos uma autenticação Google ativa. Inicie o login novamente.",
-          );
-        }
-      }, 1500);
-      return () => window.clearTimeout(timeout);
-    }
-
     hasRun.current = true;
     const redirectUrl = readAuthRedirect();
     void finishOAuth(redirectUrl);
