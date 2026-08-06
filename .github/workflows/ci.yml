@@ -16,6 +16,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      CLERK_E2E_PUBLISHABLE_KEY: ${{ secrets.CLERK_E2E_PUBLISHABLE_KEY }}
+      CLERK_E2E_SECRET_KEY: ${{ secrets.CLERK_E2E_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,17 +33,17 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - name: Validate dedicated Clerk E2E credentials
-        if: ${{ secrets.CLERK_E2E_PUBLISHABLE_KEY != '' || secrets.CLERK_E2E_SECRET_KEY != '' }}
+        if: ${{ env.CLERK_E2E_PUBLISHABLE_KEY != '' || env.CLERK_E2E_SECRET_KEY != '' }}
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_E2E_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_E2E_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ env.CLERK_E2E_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ env.CLERK_E2E_SECRET_KEY }}
         run: |
           test -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
           test -n "$CLERK_SECRET_KEY"
           case "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" in pk_test_*) ;; *) echo "CLERK_E2E_PUBLISHABLE_KEY must be a Clerk test key." >&2; exit 1 ;; esac
           case "$CLERK_SECRET_KEY" in sk_test_*) ;; *) echo "CLERK_E2E_SECRET_KEY must be a Clerk test key." >&2; exit 1 ;; esac
       - name: Browser smoke and accessibility tests
-        if: ${{ secrets.CLERK_E2E_PUBLISHABLE_KEY != '' && secrets.CLERK_E2E_SECRET_KEY != '' }}
+        if: ${{ env.CLERK_E2E_PUBLISHABLE_KEY != '' && env.CLERK_E2E_SECRET_KEY != '' }}
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_E2E_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_E2E_SECRET_KEY }}
